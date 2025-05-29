@@ -7,7 +7,7 @@ import { Carrier } from '@/lib/models/Carrier'
 
 export async function GET(request, { params }) {
   try {
-    const { searchId } = params
+    const { searchId } = await params
     const client = await clientPromise
     const db = client.db('eurotours')
 

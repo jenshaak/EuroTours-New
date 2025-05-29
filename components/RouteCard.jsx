@@ -11,6 +11,7 @@ export function RouteCard({ route, onSelect, fromCity, toCity, carrier, classNam
   const arrivalTime = new Date(route.arrivalTime)
   const duration = formatDuration(route.departureTime, route.arrivalTime)
 
+  // Use English names by default, fallback to any available name
   const fromCityName = getTranslatedName(fromCity?.names || {}, 'en')
   const toCityName = getTranslatedName(toCity?.names || {}, 'en')
 
@@ -49,13 +50,13 @@ export function RouteCard({ route, onSelect, fromCity, toCity, carrier, classNam
                 {/* Transfer indicator */}
                 {!route.isDirect && (
                   <div className="text-xs text-orange-600 font-medium">
-                    with transfer
+                    With transfer
                   </div>
                 )}
                 
                 {route.isDirect && (
                   <div className="text-xs text-green-600 font-medium">
-                    direct
+                    Direct
                   </div>
                 )}
               </div>
@@ -74,7 +75,7 @@ export function RouteCard({ route, onSelect, fromCity, toCity, carrier, classNam
             {/* Carrier Information */}
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <Bus className="w-4 h-4" />
-              <span className="font-medium">{carrier?.name || 'Unknown Carrier'}</span>
+              <span className="font-medium">{carrier?.name || 'Bus Carrier'}</span>
               {route.isExternal && (
                 <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
                   External
@@ -85,7 +86,7 @@ export function RouteCard({ route, onSelect, fromCity, toCity, carrier, classNam
             {/* Available Seats */}
             {route.availableSeats && (
               <div className="mt-2 text-xs text-gray-500">
-                {route.availableSeats} seats available
+                {route.availableSeats} available seats
               </div>
             )}
           </div>
@@ -98,7 +99,7 @@ export function RouteCard({ route, onSelect, fromCity, toCity, carrier, classNam
               </div>
               {route.maxPrice && route.maxPrice > route.price && (
                 <div className="text-sm text-gray-500">
-                  up to {formatPrice(route.maxPrice, route.currency)}
+                  from {formatPrice(route.maxPrice, route.currency)}
                 </div>
               )}
             </div>
@@ -107,7 +108,7 @@ export function RouteCard({ route, onSelect, fromCity, toCity, carrier, classNam
               onClick={() => onSelect(route)}
               className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium"
             >
-              Select
+              Select Route
             </Button>
           </div>
         </div>

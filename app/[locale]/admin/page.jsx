@@ -1,11 +1,14 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import LanguageSwitcher from '@/components/LanguageSwitcher'
 import { Database, RefreshCw, CheckCircle, AlertCircle, Globe } from 'lucide-react'
 
 export default function AdminPage() {
+  const t = useTranslations()
   const [isInitializing, setIsInitializing] = useState(false)
   const [isInitializingComplete, setIsInitializingComplete] = useState(false)
   const [initResult, setInitResult] = useState(null)
@@ -29,7 +32,7 @@ export default function AdminPage() {
     } catch (error) {
       setInitResult({
         success: false,
-        error: 'An error occurred',
+        error: t('common.error'),
         details: error.message
       })
     } finally {
@@ -55,7 +58,7 @@ export default function AdminPage() {
     } catch (error) {
       setCompleteInitResult({
         success: false,
-        error: 'An error occurred',
+        error: t('common.error'),
         details: error.message
       })
     } finally {
@@ -79,7 +82,7 @@ export default function AdminPage() {
             <AlertCircle className="w-5 h-5" />
           )}
           <span className="font-medium">
-            {title}: {result.success ? 'Success' : 'Error'}
+            {title}: {result.success ? t('admin.success') : t('admin.error')}
           </span>
         </div>
         
@@ -98,15 +101,18 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
-      {/* Header */}
+      {/* Header with Language Switcher */}
       <div className="max-w-4xl mx-auto mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            EuroTours Admin Panel
-          </h1>
-          <p className="text-gray-600">
-            Database administration and system management
-          </p>
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              {t('admin.title')}
+            </h1>
+            <p className="text-gray-600">
+              {t('admin.description')}
+            </p>
+          </div>
+          <LanguageSwitcher />
         </div>
       </div>
 
@@ -117,16 +123,16 @@ export default function AdminPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Database className="w-5 h-5" />
-                Database Initialization
+                {t('admin.databaseInit')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Basic Initialization */}
               <div className="space-y-4">
                 <div>
-                  <h3 className="text-lg font-medium mb-2">Basic Initialization</h3>
+                  <h3 className="text-lg font-medium mb-2">{t('admin.basicInit')}</h3>
                   <p className="text-gray-600 text-sm mb-4">
-                    Initialize basic database structure with essential data
+                    {t('admin.basicInitDesc')}
                   </p>
 
                   <Button
@@ -137,17 +143,17 @@ export default function AdminPage() {
                     {isInitializing ? (
                       <>
                         <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                        Initializing...
+                        {t('admin.initializing')}
                       </>
                     ) : (
                       <>
                         <Database className="w-4 h-4 mr-2" />
-                        Initialize Basic Database
+                        {t('admin.initBasicDb')}
                       </>
                     )}
                   </Button>
 
-                  <ResultDisplay result={initResult} title="Basic Initialization" />
+                  <ResultDisplay result={initResult} title={t('admin.basicInit')} />
                 </div>
               </div>
 
@@ -157,15 +163,15 @@ export default function AdminPage() {
                   <div>
                     <h3 className="text-lg font-medium mb-2 flex items-center gap-2">
                       <Globe className="w-5 h-5" />
-                      Complete Initialization
+                      {t('admin.completeInit')}
                     </h3>
                     <p className="text-gray-600 text-sm mb-4">
-                      Initialize complete database with full European city data and sample routes
+                      {t('admin.completeInitDesc')}
                     </p>
 
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
                       <p className="text-blue-800 text-sm">
-                        <strong>Note:</strong> This will initialize the complete database with comprehensive European city data and sample bus routes.
+                        <strong>{t('common.loading')}:</strong> {t('admin.completeInitDesc')}
                       </p>
                     </div>
 
@@ -177,42 +183,106 @@ export default function AdminPage() {
                       {isInitializingComplete ? (
                         <>
                           <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                          Initializing...
+                          {t('admin.initializing')}
                         </>
                       ) : (
                         <>
                           <Globe className="w-4 h-4 mr-2" />
-                          Initialize Complete Database
+                          {t('admin.initCompleteDb')}
                         </>
                       )}
                     </Button>
 
-                    <ResultDisplay result={completeInitResult} title="Complete Initialization" />
+                    <ResultDisplay result={completeInitResult} title={t('admin.completeInit')} />
                   </div>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Database Statistics */}
+          {/* System Information */}
           <Card>
             <CardHeader>
-              <CardTitle>Database Statistics</CardTitle>
+              <CardTitle>{t('admin.systemInfo')}</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="text-center p-4 bg-blue-50 rounded-lg">
-                  <div className="text-2xl font-bold text-blue-600">0</div>
-                  <div className="text-sm text-gray-600">Cities</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <div className="font-medium text-gray-700">{t('admin.environment')}</div>
+                  <div className="text-gray-600">
+                    {process.env.NODE_ENV || 'development'}
+                  </div>
                 </div>
-                <div className="text-center p-4 bg-green-50 rounded-lg">
-                  <div className="text-2xl font-bold text-green-600">0</div>
-                  <div className="text-sm text-gray-600">Routes</div>
+                <div>
+                  <div className="font-medium text-gray-700">Next.js Version</div>
+                  <div className="text-gray-600">15.3.2</div>
                 </div>
-                <div className="text-center p-4 bg-purple-50 rounded-lg">
-                  <div className="text-2xl font-bold text-purple-600">0</div>
-                  <div className="text-sm text-gray-600">Searches</div>
+                <div>
+                  <div className="font-medium text-gray-700">{t('admin.database')}</div>
+                  <div className="text-gray-600">MongoDB</div>
                 </div>
+                <div>
+                  <div className="font-medium text-gray-700">{t('admin.framework')}</div>
+                  <div className="text-gray-600">React 19 + Tailwind CSS</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Database Collections Status */}
+          <Card>
+            <CardHeader>
+              <CardTitle>{t('admin.dbCollections')}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <div className="font-medium">{t('admin.countries')}</div>
+                  <div className="text-gray-600">34 European countries</div>
+                </div>
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <div className="font-medium">{t('admin.cities')}</div>
+                  <div className="text-gray-600">Hundreds of European cities</div>
+                </div>
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <div className="font-medium">{t('admin.carriers')}</div>
+                  <div className="text-gray-600">Bus companies</div>
+                </div>
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <div className="font-medium">{t('admin.routes')}</div>
+                  <div className="text-gray-600">Bus routes (TTL: 1h)</div>
+                </div>
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <div className="font-medium">{t('admin.searches')}</div>
+                  <div className="text-gray-600">Search history (TTL: 24h)</div>
+                </div>
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <div className="font-medium">{t('admin.orders')}</div>
+                  <div className="text-gray-600">Customer bookings</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Quick Actions */}
+          <Card>
+            <CardHeader>
+              <CardTitle>{t('admin.quickActions')}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-3">
+                <Button variant="outline" size="sm">
+                  {t('admin.viewLogs')}
+                </Button>
+                <Button variant="outline" size="sm">
+                  {t('admin.checkHealth')}
+                </Button>
+                <Button variant="outline" size="sm">
+                  {t('admin.dbStats')}
+                </Button>
+                <Button variant="outline" size="sm">
+                  {t('admin.clearCache')}
+                </Button>
               </div>
             </CardContent>
           </Card>

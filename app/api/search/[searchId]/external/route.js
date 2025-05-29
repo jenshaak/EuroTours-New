@@ -4,7 +4,7 @@ import { Route } from '@/lib/models/Route'
 
 export async function GET(request, { params }) {
   try {
-    const { searchId } = params
+    const { searchId } = await params
     const client = await clientPromise
     const db = client.db('eurotours')
 

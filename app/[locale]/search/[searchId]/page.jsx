@@ -2,16 +2,20 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { useTranslations, useLocale } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { RouteCard } from '@/components/RouteCard'
 import { SearchForm } from '@/components/SearchForm'
+import LanguageSwitcher from '@/components/LanguageSwitcher'
 import { ArrowLeft, RefreshCw, AlertCircle } from 'lucide-react'
 import { getTranslatedName } from '@/lib/utils/i18n'
 
 export default function SearchResultsPage() {
   const params = useParams()
   const router = useRouter()
+  const t = useTranslations()
+  const locale = useLocale()
   const { searchId } = params
 
   const [routes, setRoutes] = useState({ outbound: [], return: [] })
@@ -31,58 +35,23 @@ export default function SearchResultsPage() {
   }, [searchId])
 
   const loadSearchResults = async () => {
-    console.log('🔍 === LOADING SEARCH RESULTS ===')
-    console.log(`📋 Search ID: ${searchId}`)
-    
     try {
       setIsLoading(true)
-      console.log('📡 Fetching search results from API...')
       const response = await fetch(`/api/search/${searchId}`)
       
-      console.log(`📡 API response status: ${response.status} ${response.statusText}`)
-      
       if (!response.ok) {
-        console.log('❌ API request failed')
         throw new Error('Failed to load search results')
       }
 
       const data = await response.json()
-      console.log('📥 Search results received:', JSON.stringify({
-        searchId: data.searchId,
-        outboundCount: data.routes?.outbound?.length || 0,
-        returnCount: data.routes?.return?.length || 0,
-        search: data.search
-      }, null, 2))
-      
-      if (data.search) {
-        console.log(`🏙️ Search details: From City ${data.search.fromCityId} → To City ${data.search.toCityId}`)
-        console.log(`📅 Departure: ${data.search.departureDate}`)
-        if (data.search.returnDate) {
-          console.log(`📅 Return: ${data.search.returnDate}`)
-        }
-        console.log(`🎫 Trip type: ${data.search.type}`)
-      }
-      
       setRoutes(data.routes || { outbound: [], return: [] })
       setSearchData(data.search)
       
-      const totalRoutes = (data.routes?.outbound?.length || 0) + (data.routes?.return?.length || 0)
-      console.log(`✅ Loaded ${totalRoutes} total routes`)
-      
-      if (totalRoutes === 0) {
-        console.log('❌ No routes found - this could mean:')
-        console.log('   1. No routes exist between these cities')
-        console.log('   2. Database needs initialization')
-        console.log('   3. Route data is missing')
-      }
-      
     } catch (error) {
-      console.error('❌ === SEARCH RESULTS LOADING ERROR ===')
-      console.error('❌ Error details:', error)
-      setError('An error occurred while loading search results')
+      console.error('Error loading search results:', error)
+      setError(t('common.error'))
     } finally {
       setIsLoading(false)
-      console.log('🏁 === SEARCH RESULTS LOADING COMPLETED ===')
     }
   }
 
@@ -124,55 +93,9 @@ export default function SearchResultsPage() {
     router.push(`/booking/${route.id}`)
   }
 
-  const handleNewSearch = async (newSearchData) => {
-    // Validate form data
-    if (!newSearchData.fromCity || !newSearchData.toCity) {
-      alert('Please select both departure and destination cities.')
-      return
-    }
-
-    if (!newSearchData.departureDate) {
-      alert('Please select a departure date.')
-      return
-    }
-
-    if (newSearchData.tripType === 'return' && !newSearchData.returnDate) {
-      alert('Please select a return date for round-trip tickets.')
-      return
-    }
-
-    try {
-      // Transform form data to match API schema
-      const apiData = {
-        fromCityId: newSearchData.fromCity.id,
-        toCityId: newSearchData.toCity.id,
-        departureDate: newSearchData.departureDate,
-        returnDate: newSearchData.returnDate || undefined,
-        tripType: newSearchData.tripType
-      }
-
-      const response = await fetch('/api/search', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(apiData)
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Search failed')
-      }
-
-      const results = await response.json()
-      
-      // Navigate to new search results page
-      router.push(`/search/${results.searchId}`)
-      
-    } catch (error) {
-      console.error('Search error:', error)
-      alert('Search failed. Please try again.')
-    }
+  const handleNewSearch = (newSearchData) => {
+    // This would typically navigate to a new search results page
+    console.log('New search:', newSearchData)
   }
 
   if (isLoading) {
@@ -180,7 +103,7 @@ export default function SearchResultsPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading...</p>
+          <p className="text-gray-600">{t('common.loading')}</p>
         </div>
       </div>
     )
@@ -192,10 +115,10 @@ export default function SearchResultsPage() {
         <Card className="max-w-md mx-auto">
           <CardContent className="p-6 text-center">
             <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Error</h2>
+            <h2 className="text-xl font-semibold mb-2">{t('common.error')}</h2>
             <p className="text-gray-600 mb-4">{error}</p>
-            <Button onClick={() => router.push('/')} variant="outline">
-              Home
+            <Button onClick={() => router.push(`/${locale}`)} variant="outline">
+              {t('navigation.home')}
             </Button>
           </CardContent>
         </Card>
@@ -214,13 +137,17 @@ export default function SearchResultsPage() {
             <div className="flex items-center">
               <Button
                 variant="ghost"
-                onClick={() => router.push('/')}
+                onClick={() => router.push(`/${locale}`)}
                 className="mr-4"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Home
+                {t('navigation.home')}
               </Button>
               <h1 className="text-2xl font-bold text-blue-600">EuroTours</h1>
+            </div>
+            
+            <div className="flex items-center space-x-4">
+              <LanguageSwitcher />
             </div>
           </div>
         </div>
@@ -236,11 +163,11 @@ export default function SearchResultsPage() {
         {searchData && (
           <div className="mb-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-2">
-              Search Results
+              {t('results.searchResults')}
             </h2>
             <p className="text-gray-600">
-              Found {totalRoutes} route{totalRoutes !== 1 ? 's' : ''}
-              {searchData.type === 'return' && ' (outbound + return)'}
+              {t('results.foundRoutes', { count: totalRoutes })}
+              {searchData.type === 'return' && ` (${t('search.oneWay')} ${t('search.return').toLowerCase()})`}
             </p>
           </div>
         )}
@@ -253,10 +180,10 @@ export default function SearchResultsPage() {
                 <RefreshCw className="w-5 h-5 text-blue-600 animate-spin" />
                 <div>
                   <p className="font-medium text-blue-900">
-                    Checking external providers...
+                    {t('results.checkingExternal')}
                   </p>
                   <p className="text-sm text-blue-700">
-                    {externalProcessing} {externalProcessing === 1 ? 'provider' : 'providers'} loading...
+                    {externalProcessing} {externalProcessing === 1 ? 'provider' : 'providers'} {t('common.loading').toLowerCase()}
                   </p>
                 </div>
               </div>
@@ -268,12 +195,12 @@ export default function SearchResultsPage() {
         {routes.outbound.length > 0 && (
           <div className="mb-8">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Outbound Journey
+              {t('results.departure')} {t('search.oneWay')}
             </h3>
             <div className="space-y-4">
-              {routes.outbound.map((route) => (
+              {routes.outbound.map((route, index) => (
                 <RouteCard
-                  key={route.id}
+                  key={`outbound-${index}`}
                   route={route}
                   onSelect={handleRouteSelect}
                   fromCity={route.fromCity}
@@ -289,12 +216,12 @@ export default function SearchResultsPage() {
         {routes.return.length > 0 && (
           <div className="mb-8">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Return Journey
+              {t('search.return')} {t('search.oneWay')}
             </h3>
             <div className="space-y-4">
-              {routes.return.map((route) => (
+              {routes.return.map((route, index) => (
                 <RouteCard
-                  key={route.id}
+                  key={`return-${index}`}
                   route={route}
                   onSelect={handleRouteSelect}
                   fromCity={route.fromCity}
@@ -306,20 +233,19 @@ export default function SearchResultsPage() {
           </div>
         )}
 
-        {/* No Results */}
-        {totalRoutes === 0 && !isLoading && (
-          <Card className="max-w-md mx-auto">
-            <CardContent className="p-6 text-center">
-              <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No routes found</h3>
-              <p className="text-gray-600 mb-4">
-                We couldn't find any routes for your search criteria. Try adjusting your dates or destinations.
+        {/* No Routes Found */}
+        {totalRoutes === 0 && !isLoadingExternal && externalProcessing === 0 && (
+          <Card className="text-center py-12">
+            <CardContent>
+              <div className="text-6xl mb-4">🚌</div>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                {t('results.noResults')}
+              </h2>
+              <p className="text-gray-600 mb-6">
+                {t('results.noResultsDescription')}
               </p>
-              <Button 
-                onClick={() => router.push('/')}
-                variant="outline"
-              >
-                New Search
+              <Button onClick={() => router.push(`/${locale}`)} variant="outline">
+                {t('common.search')} {t('navigation.search').toLowerCase()}
               </Button>
             </CardContent>
           </Card>

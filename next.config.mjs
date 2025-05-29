@@ -10,29 +10,26 @@ const nextConfig = {
   
   // Image optimization
   images: {
-    domains: [
-      'www.flixbus.com',
-      'www.blablacar.com'
-    ],
+    domains: ['localhost'],
   },
   
   // Headers for security
   async headers() {
     return [
       {
-        source: '/(.*)',
+        source: '/api/(.*)',
         headers: [
           {
-            key: 'X-Frame-Options',
-            value: 'DENY',
+            key: 'Access-Control-Allow-Origin',
+            value: '*',
           },
           {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
+            key: 'Access-Control-Allow-Methods',
+            value: 'GET, POST, PUT, DELETE, OPTIONS',
           },
           {
-            key: 'Referrer-Policy',
-            value: 'origin-when-cross-origin',
+            key: 'Access-Control-Allow-Headers',
+            value: 'Content-Type, Authorization',
           },
         ],
       },
@@ -48,7 +45,7 @@ const nextConfig = {
         permanent: true,
       },
     ]
-  },
+  }
 };
 
-export default nextConfig;
+export default nextConfig

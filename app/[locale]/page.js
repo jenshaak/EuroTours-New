@@ -2,93 +2,42 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { SearchForm } from '@/components/SearchForm'
+import LanguageSwitcher from '@/components/LanguageSwitcher'
 
 export default function HomePage() {
   const router = useRouter()
+  const t = useTranslations()
   const [searchResults, setSearchResults] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
 
   const handleSearch = async (searchData) => {
-    console.log('🔍 === CLIENT-SIDE SEARCH STARTED ===')
-    console.log('📥 Form data received:', JSON.stringify(searchData, null, 2))
-    
     setIsLoading(true)
     
     try {
-      // Validate form data
-      console.log('✅ Validating form data...')
-      if (!searchData.fromCity || !searchData.toCity) {
-        console.log('❌ Validation failed: Missing cities')
-        alert('Please select both departure and destination cities.')
-        return
-      }
-
-      if (!searchData.departureDate) {
-        console.log('❌ Validation failed: Missing departure date')
-        alert('Please select a departure date.')
-        return
-      }
-
-      if (searchData.tripType === 'return' && !searchData.returnDate) {
-        console.log('❌ Validation failed: Missing return date for round trip')
-        alert('Please select a return date for round-trip tickets.')
-        return
-      }
-
-      console.log('✅ Client validation passed')
-
-      // Transform form data to match API schema
-      const apiData = {
-        fromCityId: searchData.fromCity.id,
-        toCityId: searchData.toCity.id,
-        departureDate: searchData.departureDate,
-        returnDate: searchData.returnDate || undefined,
-        tripType: searchData.tripType
-      }
-
-      console.log('🔄 Transformed API data:', JSON.stringify(apiData, null, 2))
-      console.log(`🏙️ Searching: ${searchData.fromCity.names?.en || 'Unknown'} → ${searchData.toCity.names?.en || 'Unknown'}`)
-      console.log(`📅 Date: ${apiData.departureDate}${apiData.returnDate ? ` (return: ${apiData.returnDate})` : ''}`)
-      console.log(`🎫 Type: ${apiData.tripType}`)
-
-      console.log('📡 Making API request to /api/search...')
       const response = await fetch('/api/search', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(apiData)
+        body: JSON.stringify(searchData)
       })
 
-      console.log(`📡 API response status: ${response.status} ${response.statusText}`)
-
       if (!response.ok) {
-        const errorData = await response.json()
-        console.log('❌ API error response:', JSON.stringify(errorData, null, 2))
-        throw new Error(errorData.error || 'Search failed')
+        throw new Error('Search failed')
       }
 
       const results = await response.json()
-      console.log('📥 API success response:', JSON.stringify({
-        searchId: results.searchId,
-        outboundRoutes: results.routes?.outbound?.length || 0,
-        returnRoutes: results.routes?.return?.length || 0,
-        search: results.search
-      }, null, 2))
       
       // Navigate to search results page with the search ID
-      console.log(`🧭 Navigating to /search/${results.searchId}`)
       router.push(`/search/${results.searchId}`)
       
     } catch (error) {
-      console.error('❌ === CLIENT-SIDE SEARCH ERROR ===')
-      console.error('❌ Error details:', error)
-      console.error('❌ Error message:', error.message)
+      console.error('Search error:', error)
       alert('Search failed. Please try again.')
     } finally {
       setIsLoading(false)
-      console.log('🏁 === CLIENT-SIDE SEARCH COMPLETED ===')
     }
   }
 
@@ -104,6 +53,10 @@ export default function HomePage() {
                 European Bus Ticket Platform
               </p>
             </div>
+            
+            <div className="flex items-center space-x-4">
+              <LanguageSwitcher />
+            </div>
           </div>
         </div>
       </header>
@@ -112,13 +65,13 @@ export default function HomePage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center mb-12">
           <h1 className="text-4xl sm:text-6xl font-bold text-gray-900 mb-6">
-            Discover Beautiful
+            {t('hero.title')}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-green-600">
               {' '}Europe
             </span>
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
-            Book your perfect European bus journey with the best prices and most reliable carriers. Travel comfortably across the continent.
+            {t('hero.subtitle')}
           </p>
         </div>
 
@@ -133,19 +86,19 @@ export default function HomePage() {
             <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-2xl">💰</span>
             </div>
-            <h3 className="text-xl font-semibold mb-2">Best Prices</h3>
+            <h3 className="text-xl font-semibold mb-2">{t('features.bestPrices.title')}</h3>
             <p className="text-gray-600">
-              We compare prices from multiple carriers to get you the best deals on European bus travel.
+              {t('features.bestPrices.description')}
             </p>
           </div>
           
           <div className="text-center p-6">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-2xl">🚌</span>
+              <span className="text-2xl">��</span>
             </div>
-            <h3 className="text-xl font-semibold mb-2">Multiple Carriers</h3>
+            <h3 className="text-xl font-semibold mb-2">{t('features.multipleCarriers.title')}</h3>
             <p className="text-gray-600">
-              Choose from top European bus companies including FlixBus, Eurolines, and more.
+              {t('features.multipleCarriers.description')}
             </p>
           </div>
           
@@ -153,16 +106,16 @@ export default function HomePage() {
             <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-2xl">🛡️</span>
             </div>
-            <h3 className="text-xl font-semibold mb-2">24/7 Support</h3>
+            <h3 className="text-xl font-semibold mb-2">{t('features.customerSupport.title')}</h3>
             <p className="text-gray-600">
-              Our customer support team is available around the clock to help with your travel needs.
+              {t('features.customerSupport.description')}
             </p>
           </div>
         </div>
 
         {/* Popular Routes */}
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-8">Popular Destinations</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-8">{t('cities.popularDestinations')}</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
               'Prague → Vienna',
@@ -192,22 +145,22 @@ export default function HomePage() {
             <div>
               <h3 className="text-lg font-semibold mb-4">EuroTours</h3>
               <p className="text-gray-400 text-sm">
-                Your trusted partner for European bus travel. Connecting cities across the continent with comfort and reliability.
+                {t('footer.description')}
               </p>
             </div>
             
             <div>
-              <h4 className="font-semibold mb-4">Quick Links</h4>
+              <h4 className="font-semibold mb-4">{t('footer.quickLinks')}</h4>
               <ul className="space-y-2 text-sm text-gray-400">
-                <li>Search Routes</li>
-                <li>About Us</li>
-                <li>FAQ</li>
-                <li>Help Center</li>
+                <li>{t('navigation.search')}</li>
+                <li>{t('navigation.about')}</li>
+                <li>{t('footer.faq')}</li>
+                <li>{t('footer.helpCenter')}</li>
               </ul>
             </div>
             
             <div>
-              <h4 className="font-semibold mb-4">Bus Companies</h4>
+              <h4 className="font-semibold mb-4">{t('features.multipleCarriers.title')}</h4>
               <ul className="space-y-2 text-sm text-gray-400">
                 <li>FlixBus</li>
                 <li>BlaBlaCar</li>
@@ -217,21 +170,21 @@ export default function HomePage() {
             </div>
             
             <div>
-              <h4 className="font-semibold mb-4">Support</h4>
+              <h4 className="font-semibold mb-4">{t('footer.support')}</h4>
               <ul className="space-y-2 text-sm text-gray-400">
-                <li>Help Center</li>
-                <li>Contact Us</li>
-                <li>Terms of Service</li>
-                <li>Privacy Policy</li>
+                <li>{t('footer.helpCenter')}</li>
+                <li>{t('footer.contactUs')}</li>
+                <li>{t('footer.termsOfService')}</li>
+                <li>{t('footer.privacyPolicy')}</li>
               </ul>
             </div>
           </div>
           
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-sm text-gray-400">
-            <p>&copy; 2024 EuroTours. All rights reserved.</p>
+            <p>{t('footer.copyright')}</p>
           </div>
         </div>
       </footer>
     </div>
   )
-} 
+}

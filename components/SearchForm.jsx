@@ -58,10 +58,10 @@ export function SearchForm({ onSearch, initialValues = {} }) {
     <Card className="w-full max-w-4xl mx-auto shadow-lg">
       <CardHeader className="bg-gradient-to-r from-blue-600 to-green-600 text-white rounded-t-lg">
         <CardTitle className="text-2xl text-center font-bold">
-          Search for bus tickets across Europe
+          Find Your Perfect Bus Route
         </CardTitle>
         <p className="text-center text-blue-100 mt-2">
-          Compare prices from multiple bus companies
+          We compare prices from multiple carriers to get you the best deals
         </p>
       </CardHeader>
       
@@ -90,6 +90,7 @@ export function SearchForm({ onSearch, initialValues = {} }) {
                 size="icon"
                 onClick={swapCities}
                 className="rounded-full h-10 w-10 hover:bg-blue-50"
+                title="Swap cities"
               >
                 <ArrowUpDown className="w-4 h-4" />
               </Button>
@@ -126,7 +127,7 @@ export function SearchForm({ onSearch, initialValues = {} }) {
                 htmlFor="return-trip"
                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
               >
-                I want a return ticket
+                Return ticket
               </label>
             </div>
           </div>
@@ -135,11 +136,11 @@ export function SearchForm({ onSearch, initialValues = {} }) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700">
-                Departure date
+                Departure Date
               </label>
               <DatePicker
                 name="departureDate"
-                placeholder="Select departure date"
+                placeholder="Select date"
                 value={watch('departureDate')}
                 onValueChange={(value) => setValue('departureDate', value)}
                 minDate={new Date()}
@@ -150,11 +151,11 @@ export function SearchForm({ onSearch, initialValues = {} }) {
             {tripType === 'return' && (
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">
-                  Return date
+                  Return Date
                 </label>
                 <DatePicker
                   name="returnDate"
-                  placeholder="Select return date"
+                  placeholder="Select date"
                   value={watch('returnDate')}
                   onValueChange={(value) => setValue('returnDate', value)}
                   minDate={watch('departureDate') ? new Date(watch('departureDate')) : new Date()}
@@ -174,12 +175,12 @@ export function SearchForm({ onSearch, initialValues = {} }) {
             {isLoading ? (
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Searching...
+                Loading...
               </div>
             ) : (
               <div className="flex items-center gap-2">
                 <Search className="w-5 h-5" />
-                Search Tickets
+                Find Tickets
               </div>
             )}
           </Button>

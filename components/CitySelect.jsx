@@ -6,11 +6,10 @@ import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Check, ChevronsUpDown, MapPin } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { getTranslatedName } from '@/lib/utils/i18n'
 
 export function CitySelect({ 
   name, 
-  placeholder = "Select city", 
+  placeholder, 
   value, 
   onValueChange, 
   error,
@@ -21,6 +20,9 @@ export function CitySelect({
   const [cities, setCities] = useState([])
   const [filteredCities, setFilteredCities] = useState([])
   const [isLoading, setIsLoading] = useState(false)
+
+  // Use provided placeholder or default
+  const displayPlaceholder = placeholder || 'Search cities...'
 
   // Load cities on component mount
   useEffect(() => {
@@ -74,8 +76,9 @@ export function CitySelect({
   }
 
   const getDisplayName = (city) => {
-    if (!city) return placeholder
-    return getTranslatedName(city.names, 'en') // Default to English for now
+    if (!city) return displayPlaceholder
+    // Default to English name, fallback to first available name
+    return city.names?.en || city.names?.cs || city.names?.bg || Object.values(city.names || {})[0] || city.name
   }
 
   return (
@@ -95,7 +98,7 @@ export function CitySelect({
             <div className="flex items-center gap-2">
               <MapPin className="w-4 h-4 text-gray-400" />
               <span className="truncate">
-                {value ? getDisplayName(value) : placeholder}
+                {value ? getDisplayName(value) : displayPlaceholder}
               </span>
             </div>
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -117,11 +120,11 @@ export function CitySelect({
             {isLoading ? (
               <div className="flex items-center justify-center py-6">
                 <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
-                <span className="ml-2 text-sm text-gray-500">Loading cities...</span>
+                <span className="ml-2 text-sm text-gray-500">Loading...</span>
               </div>
             ) : filteredCities.length === 0 ? (
               <div className="py-6 text-center text-sm text-gray-500">
-                {searchQuery ? 'No cities found.' : 'No cities available.'}
+                {searchQuery ? 'No cities found' : 'No cities found'}
               </div>
             ) : (
               <div className="space-y-1 p-1">
