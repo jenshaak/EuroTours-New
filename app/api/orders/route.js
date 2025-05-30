@@ -12,9 +12,11 @@ const OrderRequestSchema = z.object({
     dateOfBirth: z.string().optional(),
     documentNumber: z.string().optional()
   }),
-  paymentMethod: z.enum(['card', 'crypto']),
+  paymentMethod: z.enum(['card', 'coinremitter', 'coinbase']),
+  cryptoCurrency: z.string().optional(), // Required if paymentMethod is 'crypto'
   totalPrice: z.number().positive(),
-  currency: z.string()
+  currency: z.string().default('EUR'),
+  cryptoProvider: z.string().optional()
 })
 
 export async function POST(request) {
@@ -24,6 +26,14 @@ export async function POST(request) {
     
     // Validate request data
     const validatedData = OrderRequestSchema.parse(body)
+    
+    // Validate crypto currency if payment method is crypto
+    if (validatedData.paymentMethod === 'crypto' && !validatedData.cryptoCurrency) {
+      return NextResponse.json(
+        { error: 'Cryptocurrency selection is required for crypto payments' },
+        { status: 400 }
+      )
+    }
     
     // Generate order ID
     const orderId = randomUUID()
@@ -38,7 +48,7 @@ export async function POST(request) {
     
     console.log('✅ Order created:', order)
     
-    // Mock payment URL generation
+    // Handle payment method
     if (validatedData.paymentMethod === 'card') {
       // TODO: Integrate with actual WebPay
       const paymentUrl = `/payment/webpay/${orderId}`
@@ -46,9 +56,91 @@ export async function POST(request) {
         ...order,
         paymentUrl
       })
-    } else if (validatedData.paymentMethod === 'crypto') {
-      // TODO: Integrate with actual CoinRemitter
-      return NextResponse.json(order)
+    } else if (validatedData.paymentMethod === 'coinremitter') {
+      // Create real crypto invoice using CoinRemitter
+      try {
+        const cryptoResponse = await fetch(`${request.nextUrl.origin}/api/crypto/create-invoice`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            orderId: orderId,
+            amount: validatedData.totalPrice,
+            currency: validatedData.currency === 'CZK' ? 'USD' : validatedData.currency, // Convert CZK to USD for crypto
+            coin: validatedData.cryptoCurrency.toLowerCase(),
+            description: `EuroTours Bus Ticket - ${validatedData.passenger.fullName}`
+          })
+        })
+        
+        const cryptoResult = await cryptoResponse.json()
+        
+        if (cryptoResponse.ok && cryptoResult.success) {
+          return NextResponse.json({
+            ...order,
+            cryptoInvoice: cryptoResult.invoice
+          })
+        } else {
+          // Handle specific crypto errors with helpful messages
+          let errorMessage = 'Failed to create crypto payment'
+          
+          if (cryptoResult.suggestions) {
+            const suggestions = cryptoResult.suggestions.join('\n• ')
+            errorMessage = `${cryptoResult.error}\n\nSuggestions:\n• ${suggestions}`
+          } else if (cryptoResult.message) {
+            errorMessage = cryptoResult.message
+          }
+          
+          return NextResponse.json(
+            { 
+              error: 'Crypto payment not available', 
+              message: errorMessage,
+              supportedCoins: cryptoResult.supportedCoins || ['TCN']
+            },
+            { status: 400 }
+          )
+        }
+        
+      } catch (cryptoError) {
+        console.error('❌ Crypto invoice creation failed:', cryptoError)
+        return NextResponse.json(
+          { error: 'Failed to create crypto payment', message: cryptoError.message },
+          { status: 500 }
+        )
+      }
+    } else if (validatedData.paymentMethod === 'coinbase') {
+      // Create Coinbase Commerce charge
+      try {
+        const successUrl = `${request.nextUrl.origin}/payment/success/${orderId}`
+        
+        const coinbaseResponse = await fetch(`${request.nextUrl.origin}/api/coinbase/create-charge`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            orderId: orderId,
+            amount: validatedData.totalPrice,
+            currency: validatedData.currency === 'CZK' ? 'USD' : validatedData.currency, // Convert CZK to USD
+            description: `EuroTours Bus Ticket - ${validatedData.passenger.fullName}`,
+            customerEmail: validatedData.passenger.email,
+            redirectUrl: successUrl
+          })
+        })
+        
+        const coinbaseResult = await coinbaseResponse.json()
+        
+        if (coinbaseResponse.ok && coinbaseResult.success) {
+          return NextResponse.json({
+            ...order,
+            coinbaseCharge: coinbaseResult.charge
+          })
+        } else {
+          throw new Error(coinbaseResult.error || 'Failed to create Coinbase Commerce charge')
+        }
+      } catch (error) {
+        console.error('❌ Coinbase Commerce error:', error)
+        return NextResponse.json(
+          { error: `Coinbase Commerce payment failed: ${error.message}` },
+          { status: 500 }
+        )
+      }
     }
     
   } catch (error) {

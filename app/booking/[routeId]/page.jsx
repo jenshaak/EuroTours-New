@@ -18,6 +18,9 @@ export default function BookingPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState(null)
+  const [showCryptoSelection, setShowCryptoSelection] = useState(false)
+  const [selectedCrypto, setSelectedCrypto] = useState('BTC')
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('card')
   
   // Form state
   const [passengerInfo, setPassengerInfo] = useState({
@@ -27,6 +30,25 @@ export default function BookingPage() {
     dateOfBirth: '',
     documentNumber: ''
   })
+
+  // Supported cryptocurrencies - different for each provider
+  const getSupportedCryptos = () => {
+    if (selectedPaymentMethod === 'coinremitter') {
+      return [
+        { code: 'TCN', name: 'TestCoin' }
+      ]
+    } else if (selectedPaymentMethod === 'coinbase') {
+      return [
+        { code: 'BTC', name: 'Bitcoin' },
+        { code: 'ETH', name: 'Ethereum' },
+        { code: 'LTC', name: 'Litecoin' },
+        { code: 'USDC', name: 'USD Coin' },
+        { code: 'DAI', name: 'Dai' },
+        { code: 'DOGE', name: 'Dogecoin' }
+      ]
+    }
+    return []
+  }
 
   useEffect(() => {
     if (routeId) {
@@ -80,13 +102,20 @@ export default function BookingPage() {
 
   const handleBookingSubmit = async (paymentMethod) => {
     try {
-      setIsSubmitting(true)
-      
       // Validate form
       if (!passengerInfo.fullName || !passengerInfo.email || !passengerInfo.phone) {
         alert('Please fill in all required fields')
         return
       }
+
+      // For crypto payments, show currency selection first
+      if ((paymentMethod === 'coinremitter' || paymentMethod === 'coinbase') && !showCryptoSelection) {
+        setSelectedPaymentMethod(paymentMethod)
+        setShowCryptoSelection(true)
+        return
+      }
+
+      setIsSubmitting(true)
 
       // Create order
       const orderData = {
@@ -97,9 +126,14 @@ export default function BookingPage() {
         currency: route.currency
       }
 
+      // Add crypto currency if selected
+      if (paymentMethod === 'coinremitter' || paymentMethod === 'coinbase') {
+        orderData.cryptoCurrency = selectedCrypto
+        orderData.cryptoProvider = paymentMethod
+      }
+
       console.log('Creating order:', orderData)
       
-      // TODO: Implement actual order creation API
       const response = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -112,20 +146,38 @@ export default function BookingPage() {
         if (paymentMethod === 'card') {
           // Redirect to WebPay
           window.location.href = order.paymentUrl
-        } else if (paymentMethod === 'crypto') {
-          // Navigate to crypto payment page
-          router.push(`/payment/crypto/${order.id}`)
+        } else if (paymentMethod === 'coinremitter') {
+          if (order.cryptoInvoice) {
+            // Navigate to crypto payment page with invoice data
+            sessionStorage.setItem('cryptoInvoice', JSON.stringify(order.cryptoInvoice))
+            router.push(`/payment/crypto/${order.id}`)
+          } else {
+            throw new Error('CoinRemitter invoice not created')
+          }
+        } else if (paymentMethod === 'coinbase') {
+          if (order.coinbaseCharge) {
+            // Navigate to Coinbase Commerce checkout
+            window.location.href = order.coinbaseCharge.hosted_url
+          } else {
+            throw new Error('Coinbase Commerce charge not created')
+          }
         }
       } else {
-        throw new Error('Failed to create order')
+        const errorData = await response.json()
+        throw new Error(errorData.message || 'Failed to create order')
       }
       
     } catch (error) {
       console.error('Booking error:', error)
-      alert('Booking failed. Please try again.')
+      alert(`Booking failed: ${error.message}`)
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  const handleCryptoConfirm = () => {
+    setShowCryptoSelection(false)
+    handleBookingSubmit(selectedPaymentMethod)
   }
 
   if (isLoading) {
@@ -313,7 +365,7 @@ export default function BookingPage() {
                 {/* Payment Options */}
                 <div className="border-t pt-6">
                   <h3 className="text-lg font-semibold mb-4">Payment Method</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <Button
                       onClick={() => handleBookingSubmit('card')}
                       disabled={isSubmitting}
@@ -324,13 +376,23 @@ export default function BookingPage() {
                     </Button>
                     
                     <Button
-                      onClick={() => handleBookingSubmit('crypto')}
+                      onClick={() => handleBookingSubmit('coinremitter')}
                       disabled={isSubmitting}
                       variant="outline"
                       className="h-16 flex flex-col items-center gap-2"
                     >
                       <Coins className="w-6 h-6" />
-                      <span>Pay with Crypto</span>
+                      <span>Pay with CoinRemitter</span>
+                    </Button>
+
+                    <Button
+                      onClick={() => handleBookingSubmit('coinbase')}
+                      disabled={isSubmitting}
+                      variant="outline"
+                      className="h-16 flex flex-col items-center gap-2"
+                    >
+                      <Coins className="w-6 h-6" />
+                      <span>Pay with Coinbase Commerce</span>
                     </Button>
                   </div>
                 </div>
@@ -338,6 +400,57 @@ export default function BookingPage() {
             </Card>
           </div>
         </div>
+
+        {/* Crypto Selection Modal */}
+        {showCryptoSelection && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <Card className="max-w-md mx-4 w-full">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Coins className="w-5 h-5" />
+                  Select Cryptocurrency - {selectedPaymentMethod === 'coinremitter' ? 'CoinRemitter' : 'Coinbase Commerce'}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-gray-600">
+                  Choose your preferred cryptocurrency for payment:
+                </p>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  {getSupportedCryptos().map((crypto) => (
+                    <Button
+                      key={crypto.code}
+                      variant={selectedCrypto === crypto.code ? "default" : "outline"}
+                      onClick={() => setSelectedCrypto(crypto.code)}
+                      className="h-16 flex flex-col items-center gap-1"
+                    >
+                      <span className="font-bold text-sm">{crypto.code}</span>
+                      <span className="text-xs">{crypto.name}</span>
+                    </Button>
+                  ))}
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <Button
+                    onClick={() => setShowCryptoSelection(false)}
+                    variant="outline"
+                    className="flex-1"
+                    disabled={isSubmitting}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleCryptoConfirm}
+                    className="flex-1"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? 'Creating...' : 'Continue'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </div>
   )
