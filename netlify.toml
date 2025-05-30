@@ -10,27 +10,6 @@
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
-# Next.js function
-[functions]
-  node_bundler = "esbuild"
-
-# Handle Next.js routing
-[[redirects]]
-  from = "/_next/static/*"
-  to = "/_next/static/:splat"
-  status = 200
-
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/api/:splat"
-  status = 200
-
-# Handle client-side routing - this should be last
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-
 # Security headers
 [[headers]]
   for = "/*"
