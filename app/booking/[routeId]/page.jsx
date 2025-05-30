@@ -365,7 +365,7 @@ export default function BookingPage() {
                 {/* Payment Options */}
                 <div className="border-t pt-6">
                   <h3 className="text-lg font-semibold mb-4">Payment Method</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Button
                       onClick={() => handleBookingSubmit('card')}
                       disabled={isSubmitting}
@@ -393,6 +393,18 @@ export default function BookingPage() {
                     >
                       <Coins className="w-6 h-6" />
                       <span>Pay with Coinbase Commerce</span>
+                    </Button>
+
+                    <Button
+                      onClick={() => handleBookingSubmit('onchainkit')}
+                      disabled={isSubmitting}
+                      variant="outline"
+                      className="h-16 flex flex-col items-center gap-2 bg-blue-50 hover:bg-blue-100 border-blue-200"
+                    >
+                      <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                        $
+                      </div>
+                      <span>Pay with USDC (OnchainKit)</span>
                     </Button>
                   </div>
                 </div>

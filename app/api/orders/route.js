@@ -12,7 +12,7 @@ const OrderRequestSchema = z.object({
     dateOfBirth: z.string().optional(),
     documentNumber: z.string().optional()
   }),
-  paymentMethod: z.enum(['card', 'coinremitter', 'coinbase']),
+  paymentMethod: z.enum(['card', 'coinremitter', 'coinbase', 'onchainkit']),
   cryptoCurrency: z.string().optional(), // Required if paymentMethod is 'crypto'
   totalPrice: z.number().positive(),
   currency: z.string().default('EUR'),
@@ -138,6 +138,38 @@ export async function POST(request) {
         console.error('❌ Coinbase Commerce error:', error)
         return NextResponse.json(
           { error: `Coinbase Commerce payment failed: ${error.message}` },
+          { status: 500 }
+        )
+      }
+    } else if (validatedData.paymentMethod === 'onchainkit') {
+      // Create OnchainKit charge
+      try {
+        const onchainKitResponse = await fetch(`${request.nextUrl.origin}/api/onchainkit/create-charge`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            orderId: orderId,
+            amount: validatedData.totalPrice,
+            currency: 'USDC', // OnchainKit focuses on USDC
+            description: `EuroTours Bus Ticket - ${validatedData.passenger.fullName}`,
+            customerEmail: validatedData.passenger.email
+          })
+        })
+        
+        const onchainKitResult = await onchainKitResponse.json()
+        
+        if (onchainKitResponse.ok && onchainKitResult.success) {
+          return NextResponse.json({
+            ...order,
+            onchainKitCharge: onchainKitResult.charge
+          })
+        } else {
+          throw new Error(onchainKitResult.error || 'Failed to create OnchainKit charge')
+        }
+      } catch (error) {
+        console.error('❌ OnchainKit error:', error)
+        return NextResponse.json(
+          { error: `OnchainKit payment failed: ${error.message}` },
           { status: 500 }
         )
       }
