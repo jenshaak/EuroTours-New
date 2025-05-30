@@ -3,7 +3,7 @@ import { coinbaseCommerceAPI } from '@/lib/services/coinbase-commerce'
 
 export async function GET(request, { params }) {
   try {
-    const { chargeId } = params
+    const { chargeId } = await params
     
     if (!chargeId) {
       return NextResponse.json(
