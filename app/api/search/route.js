@@ -145,6 +145,11 @@ export async function POST(request) {
 async function saveRoutesToDatabase(db, searchId, routes, direction) {
   console.log(`💾 Saving ${routes.length} ${direction} routes to database`)
   
+  if (routes.length === 0) {
+    console.log('⚠️ No routes to save')
+    return
+  }
+
   const routesToSave = routes.map(route => ({
     ...route,
     searchId,
@@ -153,12 +158,29 @@ async function saveRoutesToDatabase(db, searchId, routes, direction) {
   }))
 
   try {
-    if (routesToSave.length > 0) {
-      await db.collection('routes').insertMany(routesToSave)
-      console.log(`✅ Saved ${routesToSave.length} routes`)
-    }
+    // Try bulk insert first
+    await db.collection('routes').insertMany(routesToSave, { ordered: false })
+    console.log(`✅ Saved ${routesToSave.length} routes`)
   } catch (error) {
-    console.error('❌ Error saving routes to database:', error.message)
+    if (error.code === 11000) {
+      console.log('⚠️ Duplicate key error detected, trying individual inserts...')
+      let successCount = 0
+      for (const route of routesToSave) {
+        try {
+          await db.collection('routes').insertOne(route)
+          successCount++
+        } catch (individualError) {
+          if (individualError.code !== 11000) {
+            console.error(`❌ Failed to save individual route:`, individualError.message)
+          }
+          // Skip duplicates silently
+        }
+      }
+      console.log(`✅ Saved ${successCount} out of ${routesToSave.length} routes (${routesToSave.length - successCount} duplicates skipped)`)
+    } else {
+      console.error('❌ Error saving routes to database:', error.message)
+      throw error
+    }
   }
 }
 
@@ -208,9 +230,9 @@ async function searchExternalAPIs(fromCityId, toCityId, departureDate) {
     console.error('❌ BlaBlaCar error:', error.message)
   }
   
-  // Mock Provider Search (for testing)
+  // Mock Provider (temporary - until real APIs are working)
   try {
-    console.log('🚌 Mock Provider')
+    console.log('🚌 Mock Provider (temporary)')
     const mockRoutes = await mockBusAPI.searchRoutes(
       fromCityId,
       toCityId,
@@ -222,6 +244,8 @@ async function searchExternalAPIs(fromCityId, toCityId, departureDate) {
   } catch (error) {
     console.error('❌ Mock Provider error:', error.message)
   }
+  
+  // TODO: Add Ecolines, Student Agency, etc. when credentials are updated
   
   return allRoutes
 }
