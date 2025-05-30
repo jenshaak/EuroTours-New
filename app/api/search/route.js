@@ -10,6 +10,21 @@ import { blaBlaCarsAPI } from '@/lib/external/blablacar'
 import { mockBusAPI } from '@/lib/external/mock-provider'
 import { getFlixBusCityId, getBlaBlaCityCityId } from '@/lib/external/city-mapping'
 
+// Request deduplication cache with TTL and concurrent request handling
+const searchCache = new Map()
+const ongoingSearches = new Map()
+const CACHE_TTL = 10000 // 10 seconds
+
+// Clean up expired cache entries
+setInterval(() => {
+  const now = Date.now()
+  for (const [key, value] of searchCache) {
+    if (now - value.timestamp > CACHE_TTL) {
+      searchCache.delete(key)
+    }
+  }
+}, 5000) // Clean up every 5 seconds
+
 // Validation schema for search request
 const SearchRequestSchema = z.object({
   fromCityId: z.number(),
@@ -20,112 +35,65 @@ const SearchRequestSchema = z.object({
 })
 
 export async function POST(request) {
-  console.log('🔍 === SEARCH API CALLED ===')
+  const requestId = Math.random().toString(36).substring(2, 8)
+  console.log(`🔍 === SEARCH API CALLED (Request ID: ${requestId}) ===`)
   
   try {
     const client = await clientPromise
     const db = client.db('eurotours')
     
     const body = await request.json()
-    console.log('📥 Request: Praha → London, June 5th')
+    console.log(`📥 Request ${requestId}: Praha → London, June 5th`)
     
     // Validate request data
     const validatedData = SearchRequestSchema.parse(body)
     
-    // Get city names for logging
-    const [fromCity, toCity] = await Promise.all([
-      City.findById(db, validatedData.fromCityId),
-      City.findById(db, validatedData.toCityId)
-    ])
+    // Create search key for deduplication
+    const searchKey = `${validatedData.fromCityId}-${validatedData.toCityId}-${validatedData.departureDate}-${validatedData.tripType}`
     
-    console.log(`🏙️ ${fromCity?.names?.en} → ${toCity?.names?.en}`)
-    
-    // Create search record
-    const searchData = {
-      fromCityId: validatedData.fromCityId,
-      toCityId: validatedData.toCityId,
-      departureDate: new Date(validatedData.departureDate),
-      returnDate: validatedData.returnDate ? new Date(validatedData.returnDate) : undefined,
-      type: validatedData.tripType
-    }
-    
-    const search = await Search.create(db, searchData)
-    console.log(`💾 Search ID: ${search.id}`)
-    
-    // Find internal routes (should be minimal/none for external API model)
-    const internalOutboundRoutes = await findInternalRoutes(
-      db, 
-      validatedData.fromCityId, 
-      validatedData.toCityId, 
-      new Date(validatedData.departureDate)
-    )
-
-    let internalReturnRoutes = []
-    if (validatedData.tripType === 'return' && validatedData.returnDate) {
-      internalReturnRoutes = await findInternalRoutes(
-        db,
-        validatedData.toCityId,
-        validatedData.fromCityId,
-        new Date(validatedData.returnDate)
-      )
-    }
-
-    // Search external APIs
-    console.log('🌐 Searching external providers...')
-    const externalOutboundRoutes = await searchExternalAPIs(
-      validatedData.fromCityId,
-      validatedData.toCityId,
-      new Date(validatedData.departureDate)
-    )
-
-    let externalReturnRoutes = []
-    if (validatedData.tripType === 'return' && validatedData.returnDate) {
-      externalReturnRoutes = await searchExternalAPIs(
-        validatedData.toCityId,
-        validatedData.fromCityId,
-        new Date(validatedData.returnDate)
-      )
-    }
-
-    // Combine internal and external routes
-    const allOutboundRoutes = [...internalOutboundRoutes, ...externalOutboundRoutes]
-    const allReturnRoutes = [...internalReturnRoutes, ...externalReturnRoutes]
-
-    console.log(`✅ Total routes found: ${allOutboundRoutes.length} outbound, ${allReturnRoutes.length} return`)
-
-    // Save external routes to database for later retrieval
-    if (allOutboundRoutes.length > 0) {
-      await saveRoutesToDatabase(db, search.id, allOutboundRoutes, 'there')
-    }
-    if (allReturnRoutes.length > 0) {
-      await saveRoutesToDatabase(db, search.id, allReturnRoutes, 'back')
-    }
-
-    // Get enriched routes
-    const enrichedOutboundRoutes = await enrichRoutesWithDetails(db, allOutboundRoutes)
-    const enrichedReturnRoutes = await enrichRoutesWithDetails(db, allReturnRoutes)
-    
-    const response = {
-      searchId: search.id,
-      routes: {
-        outbound: enrichedOutboundRoutes,
-        return: enrichedReturnRoutes
-      },
-      search: {
-        fromCityId: validatedData.fromCityId,
-        toCityId: validatedData.toCityId,
-        departureDate: validatedData.departureDate,
-        returnDate: validatedData.returnDate,
-        type: validatedData.tripType
+    // Check if we have a cached result
+    if (searchCache.has(searchKey)) {
+      const cached = searchCache.get(searchKey)
+      if (Date.now() - cached.timestamp < CACHE_TTL) {
+        console.log(`⚠️ Request ${requestId}: Returning cached result (age: ${Date.now() - cached.timestamp}ms)`)
+        return NextResponse.json(cached.result)
+      } else {
+        // Remove expired cache
+        searchCache.delete(searchKey)
       }
     }
     
-    console.log(`📤 Response: ${response.routes.outbound.length} outbound routes`)
-    console.log('✅ === SEARCH COMPLETED ===')
-    return NextResponse.json(response)
+    // Check if the same search is already in progress
+    if (ongoingSearches.has(searchKey)) {
+      console.log(`⚠️ Request ${requestId}: Waiting for ongoing search to complete...`)
+      const result = await ongoingSearches.get(searchKey)
+      console.log(`✅ Request ${requestId}: Returning result from ongoing search`)
+      return NextResponse.json(result)
+    }
+    
+    // Start the search and track it
+    const searchPromise = performSearch(requestId, validatedData, db)
+    ongoingSearches.set(searchKey, searchPromise)
+    
+    try {
+      // Perform the search
+      const result = await searchPromise
+      
+      // Cache the result
+      searchCache.set(searchKey, {
+        timestamp: Date.now(),
+        result: result
+      })
+      
+      console.log(`✅ Request ${requestId}: === SEARCH COMPLETED ===`)
+      return NextResponse.json(result)
+    } finally {
+      // Remove from ongoing searches
+      ongoingSearches.delete(searchKey)
+    }
     
   } catch (error) {
-    console.error('❌ Search API error:', error.message)
+    console.error(`❌ Request ${requestId}: Search API error:`, error.message)
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -139,6 +107,109 @@ export async function POST(request) {
       { status: 500 }
     )
   }
+}
+
+// Extract search logic into separate function
+async function performSearch(requestId, validatedData, db) {
+  // Get city names for logging
+  const [fromCity, toCity] = await Promise.all([
+    City.findById(db, validatedData.fromCityId),
+    City.findById(db, validatedData.toCityId)
+  ])
+  
+  console.log(`🏙️ Request ${requestId}: ${fromCity?.names?.en} → ${toCity?.names?.en}`)
+  
+  // Create search record
+  const searchData = {
+    fromCityId: validatedData.fromCityId,
+    toCityId: validatedData.toCityId,
+    departureDate: new Date(validatedData.departureDate),
+    returnDate: validatedData.returnDate ? new Date(validatedData.returnDate) : undefined,
+    type: validatedData.tripType
+  }
+  
+  const search = await Search.create(db, searchData)
+  console.log(`💾 Request ${requestId}: Search ID: ${search.id}`)
+  
+  // Find internal routes (should be minimal/none for external API model)
+  const internalOutboundRoutes = await findInternalRoutes(
+    db, 
+    validatedData.fromCityId, 
+    validatedData.toCityId, 
+    new Date(validatedData.departureDate)
+  )
+
+  let internalReturnRoutes = []
+  if (validatedData.tripType === 'return' && validatedData.returnDate) {
+    internalReturnRoutes = await findInternalRoutes(
+      db,
+      validatedData.toCityId,
+      validatedData.fromCityId,
+      new Date(validatedData.returnDate)
+    )
+  }
+
+  // Search external APIs
+  console.log(`🌐 Request ${requestId}: Searching external providers...`)
+  const externalOutboundRoutes = await searchExternalAPIs(
+    validatedData.fromCityId,
+    validatedData.toCityId,
+    new Date(validatedData.departureDate),
+    requestId
+  )
+
+  let externalReturnRoutes = []
+  if (validatedData.tripType === 'return' && validatedData.returnDate) {
+    externalReturnRoutes = await searchExternalAPIs(
+      validatedData.toCityId,
+      validatedData.fromCityId,
+      new Date(validatedData.returnDate),
+      requestId
+    )
+  }
+
+  // Combine internal and external routes
+  const allOutboundRoutes = [...internalOutboundRoutes, ...externalOutboundRoutes]
+  const allReturnRoutes = [...internalReturnRoutes, ...externalReturnRoutes]
+
+  console.log(`✅ Request ${requestId}: Total routes found: ${allOutboundRoutes.length} outbound, ${allReturnRoutes.length} return`)
+
+  // Log all generated route IDs to check for duplicates
+  const outboundIds = allOutboundRoutes.map(r => r.id)
+  const duplicateOutbound = outboundIds.filter((id, index) => outboundIds.indexOf(id) !== index)
+  if (duplicateOutbound.length > 0) {
+    console.log(`⚠️ Request ${requestId}: Duplicate outbound route IDs detected:`, duplicateOutbound)
+  }
+
+  // Save external routes to database for later retrieval
+  if (allOutboundRoutes.length > 0) {
+    await saveRoutesToDatabase(db, search.id, allOutboundRoutes, 'there')
+  }
+  if (allReturnRoutes.length > 0) {
+    await saveRoutesToDatabase(db, search.id, allReturnRoutes, 'back')
+  }
+
+  // Get enriched routes
+  const enrichedOutboundRoutes = await enrichRoutesWithDetails(db, allOutboundRoutes)
+  const enrichedReturnRoutes = await enrichRoutesWithDetails(db, allReturnRoutes)
+  
+  const response = {
+    searchId: search.id,
+    routes: {
+      outbound: enrichedOutboundRoutes,
+      return: enrichedReturnRoutes
+    },
+    search: {
+      fromCityId: validatedData.fromCityId,
+      toCityId: validatedData.toCityId,
+      departureDate: validatedData.departureDate,
+      returnDate: validatedData.returnDate,
+      type: validatedData.tripType
+    }
+  }
+  
+  console.log(`📤 Request ${requestId}: Response: ${response.routes.outbound.length} outbound routes`)
+  return response
 }
 
 // Save routes to database
@@ -185,7 +256,7 @@ async function saveRoutesToDatabase(db, searchId, routes, direction) {
 }
 
 // Search external APIs (FlixBus, BlaBlaCar, etc.)
-async function searchExternalAPIs(fromCityId, toCityId, departureDate) {
+async function searchExternalAPIs(fromCityId, toCityId, departureDate, requestId) {
   const allRoutes = []
   
   // FlixBus Search
@@ -194,19 +265,19 @@ async function searchExternalAPIs(fromCityId, toCityId, departureDate) {
     const flixbusToId = getFlixBusCityId(toCityId)
     
     if (flixbusFromId && flixbusToId) {
-      console.log(`🚌 FlixBus: ${flixbusFromId} → ${flixbusToId}`)
+      console.log(`🚌 Request ${requestId}: FlixBus: ${flixbusFromId} → ${flixbusToId}`)
       const flixbusRoutes = await flixBusAPI.searchRoutes(
         flixbusFromId,
         flixbusToId,
         departureDate
       )
       allRoutes.push(...flixbusRoutes)
-      console.log(`✅ FlixBus: ${flixbusRoutes.length} routes`)
+      console.log(`✅ Request ${requestId}: FlixBus: ${flixbusRoutes.length} routes`)
     } else {
-      console.log('⚠️ FlixBus: No city mapping')
+      console.log(`⚠️ Request ${requestId}: FlixBus: No city mapping`)
     }
   } catch (error) {
-    console.error('❌ FlixBus error:', error.message)
+    console.error(`❌ Request ${requestId}: FlixBus error:`, error.message)
   }
   
   // BlaBlaCar Search
@@ -215,34 +286,38 @@ async function searchExternalAPIs(fromCityId, toCityId, departureDate) {
     const blablacarToId = getBlaBlaCityCityId(toCityId)
     
     if (blablacarFromId && blablacarToId) {
-      console.log(`🚗 BlaBlaCar: ${blablacarFromId} → ${blablacarToId}`)
+      console.log(`🚗 Request ${requestId}: BlaBlaCar: ${blablacarFromId} → ${blablacarToId}`)
       const blablacarRoutes = await blaBlaCarsAPI.searchRoutes(
         blablacarFromId,
         blablacarToId,
         departureDate
       )
       allRoutes.push(...blablacarRoutes)
-      console.log(`✅ BlaBlaCar: ${blablacarRoutes.length} routes`)
+      console.log(`✅ Request ${requestId}: BlaBlaCar: ${blablacarRoutes.length} routes`)
     } else {
-      console.log('⚠️ BlaBlaCar: No city mapping')
+      console.log(`⚠️ Request ${requestId}: BlaBlaCar: No city mapping`)
     }
   } catch (error) {
-    console.error('❌ BlaBlaCar error:', error.message)
+    console.error(`❌ Request ${requestId}: BlaBlaCar error:`, error.message)
   }
   
   // Mock Provider (temporary - until real APIs are working)
   try {
-    console.log('🚌 Mock Provider (temporary)')
+    console.log(`🚌 Request ${requestId}: Mock Provider (temporary)`)
     const mockRoutes = await mockBusAPI.searchRoutes(
       fromCityId,
       toCityId,
       departureDate,
       'EUR'
     )
+    
+    // Log the generated route IDs to verify uniqueness
+    console.log(`🔍 Request ${requestId}: Mock route IDs:`, mockRoutes.map(r => r.id))
+    
     allRoutes.push(...mockRoutes)
-    console.log(`✅ Mock Provider: ${mockRoutes.length} routes`)
+    console.log(`✅ Request ${requestId}: Mock Provider: ${mockRoutes.length} routes`)
   } catch (error) {
-    console.error('❌ Mock Provider error:', error.message)
+    console.error(`❌ Request ${requestId}: Mock Provider error:`, error.message)
   }
   
   // TODO: Add Ecolines, Student Agency, etc. when credentials are updated

@@ -120,6 +120,12 @@ export default function SearchResultsPage() {
   }
 
   const handleRouteSelect = (route) => {
+    // Store route data for booking page
+    console.log('🎯 Route selected:', route.id)
+    
+    // Store route data in sessionStorage for the booking page
+    sessionStorage.setItem('selectedRoute', JSON.stringify(route))
+    
     // Navigate to booking page
     router.push(`/booking/${route.id}`)
   }
