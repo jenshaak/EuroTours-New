@@ -3,7 +3,6 @@ import { coinbaseCommerceAPI } from '@/lib/services/coinbase-commerce'
 import clientPromise from '@/lib/db'
 import { Order } from '@/lib/models/Order'
 import { Route } from '@/lib/models/Route'
-import { emailService } from '@/lib/services/email'
 
 export async function POST(request) {
   try {
@@ -140,35 +139,27 @@ async function handlePaymentConfirmed(chargeData) {
     await Order.updateStatus(db, orderId, 'paid', chargeData.id)
     console.log(`✅ Order ${orderId} status updated to 'paid'`)
     
-    // Get order details for email
-    const order = await Order.findById(db, orderId)
-    if (!order) {
-      console.error(`❌ Order ${orderId} not found in database`)
-      return
-    }
-    
-    // Get route details for email (optional)
-    let route = null
+    // Send confirmation email using the same endpoint as card payments
     try {
-      route = await Route.findById(db, order.routeId)
-      if (route) {
-        // You might want to enrich route with city names here
-        console.log(`📍 Route found for order: ${route.fromCityId} → ${route.toCityId}`)
+      console.log('📧 Sending confirmation email via API...')
+      const emailResponse = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/orders/${orderId}/send-confirmation`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      })
+      
+      if (emailResponse.ok) {
+        const emailResult = await emailResponse.json()
+        console.log('✅ Confirmation email sent successfully:', emailResult)
+      } else {
+        const emailError = await emailResponse.text()
+        console.error('❌ Failed to send confirmation email:', emailError)
       }
-    } catch (routeError) {
-      console.warn('⚠️ Could not fetch route details:', routeError.message)
-    }
-    
-    // Send confirmation email
-    try {
-      await emailService.sendOrderConfirmation(order, route)
-      console.log(`📧 Confirmation email sent to: ${order.passenger.email}`)
     } catch (emailError) {
-      console.error('❌ Failed to send confirmation email:', emailError)
+      console.error('❌ Error sending confirmation email:', emailError)
       // Don't throw here - the payment is still successful even if email fails
     }
     
-    console.log(`🎉 Order ${orderId} payment confirmed and processed successfully!`)
+    console.log(`🎉 Order ${orderId} Coinbase Commerce payment confirmed and processed successfully!`)
     
   } catch (error) {
     console.error('❌ Error handling confirmed payment:', error)
