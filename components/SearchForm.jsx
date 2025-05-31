@@ -55,12 +55,12 @@ export function SearchForm({ onSearch, initialValues = {} }) {
   }
 
   return (
-    <Card className="w-full max-w-4xl mx-auto shadow-lg">
+    <Card className="w-full max-w-4xl mx-auto shadow-lg bg-red-200">
       <CardHeader className="bg-blue-600 text-white rounded-t-lg">
         <CardTitle className="text-2xl text-center font-bold">
           Find Your Perfect Bus Route
         </CardTitle>
-        <p className="text-center text-blue-100 mt-2">
+        <p className="text-center text-blue-100">
           We compare prices from multiple carriers to get you the best deals
         </p>
       </CardHeader>
