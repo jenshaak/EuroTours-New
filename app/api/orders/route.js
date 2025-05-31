@@ -147,7 +147,8 @@ export async function POST(request) {
     } else if (validatedData.paymentMethod === 'coinbase') {
       console.log('🟡 Processing Coinbase Commerce payment...')
       try {
-        const testPrice = Math.max(0.01, validatedData.totalPrice / 100)
+        // Divide price by 1000 for testing (even smaller test amounts)
+        const testPrice = Math.max(0.01, validatedData.totalPrice / 1000)
         console.log('🟡 Coinbase test price calculated:', testPrice)
         
         const successUrl = `${request.nextUrl.origin}/payment/success/${orderId}`
