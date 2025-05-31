@@ -1,7 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 
-export function Logo({ className = "", linkTo = "/", width = 120, height = 40 }) {
+export function Logo({ className = "", linkTo = "/", width = 200, height = 70 }) {
   const LogoComponent = (
     <div className={`flex items-center ${className}`}>
       <Image
