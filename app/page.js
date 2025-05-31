@@ -101,9 +101,6 @@ export default function HomePage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <Logo />
-              <p className="ml-3 text-gray-600 hidden sm:block">
-                European Bus Ticket Platform
-              </p>
             </div>
           </div>
         </div>
