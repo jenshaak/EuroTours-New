@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { CheckCircle, Mail, ArrowLeft, Download, MapPin, Clock, Bus, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
+import { Logo } from '@/components/ui/logo'
 
 // Helper functions for formatting
 const formatTime = (date) => {
@@ -114,9 +115,7 @@ export default function PaymentSuccessPage({ params }) {
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
-            <Link href="/" className="text-2xl font-bold text-blue-600">
-              EuroTours
-            </Link>
+            <Logo />
           </div>
         </div>
       </header>

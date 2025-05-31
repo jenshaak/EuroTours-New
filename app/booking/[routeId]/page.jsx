@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ArrowLeft, Clock, Bus, MapPin, CreditCard, Coins } from 'lucide-react'
 import { formatTime, formatDuration, formatPrice, getTranslatedName } from '@/lib/utils/i18n'
+import { Logo } from '@/components/ui/logo'
 
 export default function BookingPage() {
   const params = useParams()
@@ -288,7 +289,7 @@ export default function BookingPage() {
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back
               </Button>
-              <h1 className="text-2xl font-bold text-blue-600">EuroTours</h1>
+              <Logo />
             </div>
           </div>
         </div>

@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Coins, Copy, CheckCircle, Clock, RefreshCw } from 'lucide-react'
+import { Logo } from '@/components/ui/logo'
 
 export default function CryptoPaymentPage() {
   const params = useParams()
@@ -121,7 +122,7 @@ export default function CryptoPaymentPage() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-blue-600">EuroTours</h1>
+              <Logo />
               <span className="ml-4 text-gray-600">Crypto Payment</span>
             </div>
             {countdown && (

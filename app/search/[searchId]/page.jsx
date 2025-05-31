@@ -8,6 +8,7 @@ import { RouteCard } from '@/components/RouteCard'
 import { SearchForm } from '@/components/SearchForm'
 import { ArrowLeft, RefreshCw, AlertCircle } from 'lucide-react'
 import { getTranslatedName } from '@/lib/utils/i18n'
+import { Logo } from '@/components/ui/logo'
 
 export default function SearchResultsPage() {
   const params = useParams()
@@ -226,7 +227,7 @@ export default function SearchResultsPage() {
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Home
               </Button>
-              <h1 className="text-2xl font-bold text-blue-600">EuroTours</h1>
+              <Logo />
             </div>
           </div>
         </div>
