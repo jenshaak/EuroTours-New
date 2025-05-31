@@ -110,8 +110,8 @@ export default function HomePage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center mb-12">
           <h1 className="text-4xl sm:text-6xl font-bold text-gray-900 mb-6">
-            Discover Beautiful
-            <span className="text-transparent bg-clip-text bg-blue-600">
+            Discover
+            <span className="text-transparent bg-clip-text bg-black">
               {' '}Europe
             </span>
           </h1>
@@ -226,7 +226,7 @@ export default function HomePage() {
           </div>
           
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-sm text-gray-400">
-            <p>&copy; 2024 EuroTours. All rights reserved.</p>
+            <p>&copy; 2025 EuroTours. All rights reserved.</p>
           </div>
         </div>
       </footer>
