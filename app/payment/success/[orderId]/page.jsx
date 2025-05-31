@@ -293,8 +293,8 @@ export default function PaymentSuccessPage({ params }) {
                     We've sent a confirmation email with your ticket details and travel information.
                   </p>
                 </div>
-              </div>
-
+          </div>
+          
               <div className="flex items-start gap-3">
                 <CheckCircle className="w-5 h-5 text-green-600 mt-1 flex-shrink-0" />
                 <div>
@@ -316,27 +316,27 @@ export default function PaymentSuccessPage({ params }) {
               Book Another Trip
             </Button>
           </Link>
-          
-          <Button 
+            
+            <Button 
             size="lg" 
             onClick={() => window.print()}
             className="bg-blue-600 hover:bg-blue-700"
           >
             <Download className="w-4 h-4 mr-2" />
             Print Confirmation
-          </Button>
-        </div>
-
+            </Button>
+          </div>
+          
         {/* Support Info */}
         <div className="text-center mt-8 p-4 bg-gray-50 rounded-lg">
           <p className="text-sm text-gray-600">
             Need help? Contact our support team at{' '}
-            <a href="mailto:support@eurotours.com" className="text-blue-600 hover:underline">
-              support@eurotours.com
+            <a href="mailto:info@eurotours.com" className="text-blue-600 hover:underline">
+              info@eurotours.com
             </a>
           </p>
         </div>
-      </div>
+          </div>
     </div>
   )
 } 

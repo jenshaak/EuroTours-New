@@ -5,11 +5,11 @@ export function Logo({ className = "", linkTo = "/", width = 120, height = 40 })
   const LogoComponent = (
     <div className={`flex items-center ${className}`}>
       <Image
-        src="/eurotours-logo.png"
+        src="/eurotours.jpeg"
         alt="EuroTours"
         width={width}
         height={height}
-        className="h-auto w-auto max-h-10"
+        className="h-auto w-auto max-h-10 rounded"
         priority
       />
     </div>

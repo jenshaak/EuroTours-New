@@ -150,9 +150,18 @@ export default function BookingPage() {
         console.log('✅ Order created successfully:', JSON.stringify(order, null, 2))
         
         if (paymentMethod === 'card') {
-          console.log('💳 Redirecting to WebPay...')
-          // Redirect to WebPay
-          window.location.href = order.paymentUrl
+          console.log('💳 Handling card payment response...')
+          if (order.successUrl) {
+            console.log('✅ Order completed immediately, redirecting to success page:', order.successUrl)
+            router.push(order.successUrl)
+          } else if (order.paymentUrl) {
+            console.log('💳 Redirecting to WebPay...')
+            // Fallback to WebPay if successUrl not available
+            window.location.href = order.paymentUrl
+          } else {
+            console.error('❌ No payment URL or success URL provided')
+            throw new Error('Payment processing failed - no redirect URL provided')
+          }
         } else if (paymentMethod === 'coinremitter') {
           console.log('🪙 Processing CoinRemitter payment...')
           if (order.cryptoInvoice) {
@@ -437,6 +446,7 @@ export default function BookingPage() {
                       <span>Pay with Card</span>
                     </Button>
                     
+                    {/* 
                     <Button
                       onClick={() => handleBookingSubmit('coinremitter')}
                       disabled={isSubmitting}
@@ -446,6 +456,7 @@ export default function BookingPage() {
                       <Coins className="w-6 h-6" />
                       <span>Pay with CoinRemitter</span>
                     </Button>
+                    */}
 
                     <Button
                       onClick={() => handleBookingSubmit('coinbase')}
@@ -454,9 +465,10 @@ export default function BookingPage() {
                       className="h-16 flex flex-col items-center gap-2"
                     >
                       <Coins className="w-6 h-6" />
-                      <span>Pay with Coinbase Commerce</span>
+                      <span>Pay with Cryptocurrency</span>
                     </Button>
 
+                    {/*
                     <Button
                       onClick={() => handleBookingSubmit('onchainkit')}
                       disabled={isSubmitting}
@@ -468,6 +480,7 @@ export default function BookingPage() {
                       </div>
                       <span>Pay with USDC (OnchainKit)</span>
                     </Button>
+                    */}
                   </div>
                 </div>
               </CardContent>

@@ -75,13 +75,56 @@ export async function POST(request) {
     
     // Handle payment method
     if (validatedData.paymentMethod === 'card') {
-      console.log('💳 Processing card payment...')
-      const paymentUrl = `/payment/webpay/${orderId}`
-      console.log('💳 Card payment URL generated:', paymentUrl)
-      return NextResponse.json({
-        ...order,
-        paymentUrl
-      })
+      console.log('💳 Processing card payment (TEST MODE)...')
+      
+      try {
+        // In TEST MODE: Complete the order immediately and send confirmation email
+        console.log('💳 Updating order status to completed...')
+        await Order.updateStatus(db, orderId, 'completed')
+        
+        // Get the completed order with route details for email
+        console.log('📧 Fetching order details for confirmation email...')
+        const completedOrder = await Order.getById(db, orderId)
+        
+        if (completedOrder) {
+          console.log('📧 Sending confirmation email...')
+          try {
+            // Send confirmation email
+            const emailResponse = await fetch(`${request.nextUrl.origin}/api/orders/${orderId}/send-confirmation`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' }
+            })
+            
+            if (emailResponse.ok) {
+              console.log('✅ Confirmation email sent successfully')
+            } else {
+              console.log('⚠️ Failed to send confirmation email, but order was created')
+            }
+          } catch (emailError) {
+            console.error('⚠️ Email sending failed:', emailError.message)
+            // Don't fail the order creation if email fails
+          }
+        }
+        
+        console.log('✅ Card payment completed successfully (TEST MODE)')
+        const successUrl = `/payment/success/${orderId}`
+        return NextResponse.json({
+          ...order,
+          status: 'completed',
+          successUrl,
+          message: 'Payment completed successfully (TEST MODE)'
+        })
+        
+      } catch (error) {
+        console.error('❌ Card payment processing failed:', error)
+        // Fallback to original WebPay flow if something goes wrong
+        const paymentUrl = `/payment/webpay/${orderId}`
+        console.log('💳 Falling back to WebPay URL:', paymentUrl)
+        return NextResponse.json({
+          ...order,
+          paymentUrl
+        })
+      }
     } else if (validatedData.paymentMethod === 'coinremitter') {
       console.log('🪙 Processing CoinRemitter payment...')
       try {
