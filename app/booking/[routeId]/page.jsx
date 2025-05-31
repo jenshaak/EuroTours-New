@@ -179,8 +179,18 @@ export default function BookingPage() {
         console.error('❌ Orders API request failed with status:', response.status)
         
         try {
-          const errorData = await response.json()
-          console.error('❌ Orders API error response:', JSON.stringify(errorData, null, 2))
+          // Read response as text first to avoid "body stream already read" error
+          const responseText = await response.text()
+          console.error('❌ Raw error response:', responseText)
+          
+          let errorData
+          try {
+            errorData = JSON.parse(responseText)
+            console.error('❌ Orders API error response:', JSON.stringify(errorData, null, 2))
+          } catch (jsonParseError) {
+            console.error('❌ Error response is not valid JSON, treating as plain text')
+            throw new Error(`Server error (${response.status}): ${responseText || 'Unknown error'}`)
+          }
           
           // Create detailed error message
           let errorMessage = errorData.message || errorData.error || 'Failed to create order'
@@ -199,11 +209,9 @@ export default function BookingPage() {
           }
           
           throw new Error(errorMessage)
-        } catch (parseError) {
-          console.error('❌ Failed to parse error response:', parseError)
-          const errorText = await response.text()
-          console.error('❌ Raw error response:', errorText)
-          throw new Error(`Server error (${response.status}): ${errorText || 'Unknown error'}`)
+        } catch (responseError) {
+          console.error('❌ Failed to read error response:', responseError)
+          throw new Error(`Server error (${response.status}): Unable to read response`)
         }
       }
       
