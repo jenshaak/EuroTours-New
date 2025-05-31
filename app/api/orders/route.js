@@ -90,20 +90,30 @@ export async function POST(request) {
           console.log('📧 Sending confirmation email...')
           try {
             // Send confirmation email
+            console.log('📧 Making email API request to:', `${request.nextUrl.origin}/api/orders/${orderId}/send-confirmation`)
             const emailResponse = await fetch(`${request.nextUrl.origin}/api/orders/${orderId}/send-confirmation`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' }
             })
             
+            console.log('📧 Email API response status:', emailResponse.status)
+            console.log('📧 Email API response headers:', Object.fromEntries(emailResponse.headers.entries()))
+            
             if (emailResponse.ok) {
-              console.log('✅ Confirmation email sent successfully')
+              const emailResult = await emailResponse.json()
+              console.log('✅ Confirmation email sent successfully:', JSON.stringify(emailResult, null, 2))
             } else {
+              const emailError = await emailResponse.text()
+              console.log('⚠️ Email API request failed:', emailResponse.status, emailError)
               console.log('⚠️ Failed to send confirmation email, but order was created')
             }
           } catch (emailError) {
-            console.error('⚠️ Email sending failed:', emailError.message)
+            console.error('⚠️ Email sending request failed:', emailError.message)
+            console.error('⚠️ Email error stack:', emailError.stack)
             // Don't fail the order creation if email fails
           }
+        } else {
+          console.log('❌ Could not fetch completed order for email sending')
         }
         
         console.log('✅ Card payment completed successfully (TEST MODE)')
