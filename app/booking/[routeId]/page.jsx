@@ -134,42 +134,95 @@ export default function BookingPage() {
 
       console.log('Creating order:', orderData)
       
+      console.log('📡 Making request to /api/orders...')
       const response = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(orderData)
       })
 
+      console.log('📡 Orders API response status:', response.status, response.statusText)
+      console.log('📡 Orders API response headers:', Object.fromEntries(response.headers.entries()))
+
       if (response.ok) {
         const order = await response.json()
+        console.log('✅ Order created successfully:', JSON.stringify(order, null, 2))
         
         if (paymentMethod === 'card') {
+          console.log('💳 Redirecting to WebPay...')
           // Redirect to WebPay
           window.location.href = order.paymentUrl
         } else if (paymentMethod === 'coinremitter') {
+          console.log('🪙 Processing CoinRemitter payment...')
           if (order.cryptoInvoice) {
+            console.log('🪙 CoinRemitter invoice received:', JSON.stringify(order.cryptoInvoice, null, 2))
             // Navigate to crypto payment page with invoice data
             sessionStorage.setItem('cryptoInvoice', JSON.stringify(order.cryptoInvoice))
             router.push(`/payment/crypto/${order.id}`)
           } else {
+            console.error('❌ CoinRemitter invoice not found in order response')
             throw new Error('CoinRemitter invoice not created')
           }
         } else if (paymentMethod === 'coinbase') {
+          console.log('🟡 Processing Coinbase Commerce payment...')
           if (order.coinbaseCharge) {
+            console.log('🟡 Coinbase Commerce charge received:', JSON.stringify(order.coinbaseCharge, null, 2))
+            console.log('🟡 Redirecting to Coinbase Commerce:', order.coinbaseCharge.hosted_url)
             // Navigate to Coinbase Commerce checkout
             window.location.href = order.coinbaseCharge.hosted_url
           } else {
+            console.error('❌ Coinbase Commerce charge not found in order response')
             throw new Error('Coinbase Commerce charge not created')
           }
         }
       } else {
-        const errorData = await response.json()
-        throw new Error(errorData.message || 'Failed to create order')
+        console.error('❌ Orders API request failed with status:', response.status)
+        
+        try {
+          const errorData = await response.json()
+          console.error('❌ Orders API error response:', JSON.stringify(errorData, null, 2))
+          
+          // Create detailed error message
+          let errorMessage = errorData.message || errorData.error || 'Failed to create order'
+          
+          if (errorData.type) {
+            errorMessage += ` (${errorData.type})`
+          }
+          
+          if (errorData.stack && process.env.NODE_ENV === 'development') {
+            console.error('❌ Server error stack:', errorData.stack)
+          }
+          
+          if (errorData.details) {
+            console.error('❌ Error details:', errorData.details)
+            errorMessage += '\nDetails: ' + JSON.stringify(errorData.details, null, 2)
+          }
+          
+          throw new Error(errorMessage)
+        } catch (parseError) {
+          console.error('❌ Failed to parse error response:', parseError)
+          const errorText = await response.text()
+          console.error('❌ Raw error response:', errorText)
+          throw new Error(`Server error (${response.status}): ${errorText || 'Unknown error'}`)
+        }
       }
       
     } catch (error) {
-      console.error('Booking error:', error)
-      alert(`Booking failed: ${error.message}`)
+      console.error('❌ === BOOKING ERROR ===')
+      console.error('❌ Error type:', error.constructor.name)
+      console.error('❌ Error message:', error.message)
+      console.error('❌ Error stack:', error.stack)
+      
+      // Show detailed error to user
+      let userMessage = `Booking failed: ${error.message}`
+      
+      if (error.message.includes('Coinbase Commerce')) {
+        userMessage += '\n\nPossible issues:\n• Coinbase Commerce API key not configured\n• Network connectivity problems\n• Invalid payment parameters'
+      } else if (error.message.includes('Database')) {
+        userMessage += '\n\nDatabase connection issue. Please try again.'
+      }
+      
+      alert(userMessage)
     } finally {
       setIsSubmitting(false)
     }
