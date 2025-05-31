@@ -3,8 +3,46 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { CheckCircle, Mail, ArrowLeft, Download } from 'lucide-react'
+import { CheckCircle, Mail, ArrowLeft, Download, MapPin, Clock, Bus, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
+
+// Helper functions for formatting
+const formatTime = (date) => {
+  if (!date) return 'TBD'
+  return new Date(date).toLocaleTimeString('en-GB', { 
+    hour: '2-digit', 
+    minute: '2-digit' 
+  })
+}
+
+const formatDate = (date) => {
+  if (!date) return 'TBD'
+  return new Date(date).toLocaleDateString('en-GB', { 
+    weekday: 'long',
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  })
+}
+
+const formatDuration = (minutes) => {
+  if (!minutes) return 'TBD'
+  const hours = Math.floor(minutes / 60)
+  const mins = minutes % 60
+  
+  if (hours === 0) {
+    return `${mins}m`
+  } else if (mins === 0) {
+    return `${hours}h`
+  } else {
+    return `${hours}h ${mins}m`
+  }
+}
+
+const getTranslatedName = (names, lang = 'en') => {
+  if (!names) return 'Unknown City'
+  return names[lang] || names.en || Object.values(names)[0] || 'Unknown City'
+}
 
 export default function PaymentSuccessPage({ params }) {
   const { orderId } = params
@@ -96,6 +134,109 @@ export default function PaymentSuccessPage({ params }) {
             Your bus ticket has been confirmed and you'll receive an email shortly.
           </p>
         </div>
+
+        {/* Travel Details */}
+        {order && order.route && (
+          <Card className="mb-8">
+            <CardHeader className="bg-blue-50">
+              <CardTitle className="text-blue-800 flex items-center gap-2">
+                <Bus className="w-5 h-5" />
+                🚌 Your Journey Details
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="space-y-6">
+                {/* Route Overview */}
+                <div className="flex items-center justify-between bg-gradient-to-r from-blue-50 to-green-50 p-4 rounded-lg">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-blue-600">
+                      {getTranslatedName(order.route.fromCity?.names)}
+                    </div>
+                    <div className="text-sm text-gray-600">Departure</div>
+                  </div>
+                  
+                  <div className="flex-1 flex items-center justify-center px-4">
+                    <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-full shadow-sm">
+                      <Clock className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm font-medium text-gray-700">
+                        {formatDuration(order.route.duration)}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-green-600">
+                      {getTranslatedName(order.route.toCity?.names)}
+                    </div>
+                    <div className="text-sm text-gray-600">Arrival</div>
+                  </div>
+                </div>
+
+                {/* Detailed Journey Info */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-3">
+                      <MapPin className="w-5 h-5 text-blue-600 mt-1 flex-shrink-0" />
+                      <div>
+                        <div className="font-semibold text-gray-900">Departure</div>
+                        <div className="text-lg font-medium text-blue-600">
+                          {getTranslatedName(order.route.fromCity?.names)}
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          {formatDate(order.route.departureTime)}
+                        </div>
+                        <div className="text-lg font-bold text-gray-900">
+                          {formatTime(order.route.departureTime)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-3">
+                      <MapPin className="w-5 h-5 text-green-600 mt-1 flex-shrink-0" />
+                      <div>
+                        <div className="font-semibold text-gray-900">Arrival</div>
+                        <div className="text-lg font-medium text-green-600">
+                          {getTranslatedName(order.route.toCity?.names)}
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          {formatDate(order.route.arrivalTime)}
+                        </div>
+                        <div className="text-lg font-bold text-gray-900">
+                          {formatTime(order.route.arrivalTime)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Additional Journey Info */}
+                <div className="border-t pt-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <div className="flex items-center gap-2">
+                      <Bus className="w-4 h-4 text-gray-500" />
+                      <span className="font-medium">Carrier:</span>
+                      <span>{order.route.carrier?.name || 'Bus Service'}</span>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-gray-500" />
+                      <span className="font-medium">Duration:</span>
+                      <span>{formatDuration(order.route.duration)}</span>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-gray-500" />
+                      <span className="font-medium">Type:</span>
+                      <span>{order.route.isDirect ? 'Direct' : 'With transfers'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Order Details */}
         {order && (
