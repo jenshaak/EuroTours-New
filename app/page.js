@@ -113,7 +113,7 @@ export default function HomePage() {
         <div className="text-center mb-12">
           <h1 className="text-4xl sm:text-6xl font-bold text-gray-900 mb-6">
             Discover Beautiful
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-green-600">
+            <span className="text-transparent bg-clip-text bg-blue-600">
               {' '}Europe
             </span>
           </h1>

@@ -56,7 +56,7 @@ export function SearchForm({ onSearch, initialValues = {} }) {
 
   return (
     <Card className="w-full max-w-4xl mx-auto shadow-lg">
-      <CardHeader className="bg-gradient-to-r from-blue-600 to-green-600 text-white rounded-t-lg">
+      <CardHeader className="bg-blue-600 text-white rounded-t-lg">
         <CardTitle className="text-2xl text-center font-bold">
           Find Your Perfect Bus Route
         </CardTitle>

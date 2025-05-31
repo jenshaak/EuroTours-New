@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server'
 import { coinbaseCommerceAPI } from '@/lib/services/coinbase-commerce'
+import clientPromise from '@/lib/db'
+import { Order } from '@/lib/models/Order'
+import { Route } from '@/lib/models/Route'
+import { emailService } from '@/lib/services/email'
 
 export async function POST(request) {
   try {
@@ -16,10 +20,9 @@ export async function POST(request) {
     console.log('Webhook signature present:', !!signature)
     console.log('Body length:', rawBody.length)
     
-    // For now, let's verify manually without the coinbaseCommerceAPI dependency
+    // Parse the webhook body
     let event
     try {
-      // Parse the webhook body
       event = JSON.parse(rawBody)
       console.log('✅ Webhook parsed successfully:', {
         type: event.type,
@@ -101,9 +104,17 @@ async function handleChargeCreated(chargeData) {
     const orderId = chargeData.metadata?.order_id
     console.log(`💳 Processing charge created for order: ${orderId}`)
     
-    // TODO: Update order status to 'pending' in database
-    // For now, just log the event
-    console.log(`✅ Charge created event processed for order: ${orderId}`)
+    if (!orderId) {
+      console.error('❌ No order ID found in charge metadata')
+      return
+    }
+
+    const client = await clientPromise
+    const db = client.db('eurotours')
+    
+    // Update order with payment ID
+    await Order.updateStatus(db, orderId, 'pending', chargeData.id)
+    console.log(`✅ Order ${orderId} updated with Coinbase charge ID: ${chargeData.id}`)
     
   } catch (error) {
     console.error('❌ Error handling charge created:', error)
@@ -122,12 +133,42 @@ async function handlePaymentConfirmed(chargeData) {
     
     console.log(`✅ Processing confirmed payment for order: ${orderId}`)
     
-    // TODO: Update order in database to 'paid' status
-    // TODO: Send confirmation email to customer
-    // TODO: Trigger any post-payment workflows
+    const client = await clientPromise
+    const db = client.db('eurotours')
     
-    console.log(`✅ Order ${orderId} payment confirmed via Coinbase Commerce`)
-    console.log(`📧 Confirmation should be sent to: ${customerEmail}`)
+    // Update order status to paid
+    await Order.updateStatus(db, orderId, 'paid', chargeData.id)
+    console.log(`✅ Order ${orderId} status updated to 'paid'`)
+    
+    // Get order details for email
+    const order = await Order.findById(db, orderId)
+    if (!order) {
+      console.error(`❌ Order ${orderId} not found in database`)
+      return
+    }
+    
+    // Get route details for email (optional)
+    let route = null
+    try {
+      route = await Route.findById(db, order.routeId)
+      if (route) {
+        // You might want to enrich route with city names here
+        console.log(`📍 Route found for order: ${route.fromCityId} → ${route.toCityId}`)
+      }
+    } catch (routeError) {
+      console.warn('⚠️ Could not fetch route details:', routeError.message)
+    }
+    
+    // Send confirmation email
+    try {
+      await emailService.sendOrderConfirmation(order, route)
+      console.log(`📧 Confirmation email sent to: ${order.passenger.email}`)
+    } catch (emailError) {
+      console.error('❌ Failed to send confirmation email:', emailError)
+      // Don't throw here - the payment is still successful even if email fails
+    }
+    
+    console.log(`🎉 Order ${orderId} payment confirmed and processed successfully!`)
     
   } catch (error) {
     console.error('❌ Error handling confirmed payment:', error)
@@ -145,10 +186,14 @@ async function handlePaymentFailed(chargeData) {
     
     console.log(`❌ Processing failed payment for order: ${orderId}`)
     
-    // TODO: Update order status to 'failed' in database
-    // TODO: Notify customer of payment failure
+    const client = await clientPromise
+    const db = client.db('eurotours')
     
-    console.log(`❌ Order ${orderId} payment failed via Coinbase Commerce`)
+    // Update order status to failed
+    await Order.updateStatus(db, orderId, 'failed', chargeData.id)
+    console.log(`❌ Order ${orderId} status updated to 'failed'`)
+    
+    // TODO: Optionally notify customer of payment failure via email
     
   } catch (error) {
     console.error('❌ Error handling failed payment:', error)
@@ -166,10 +211,14 @@ async function handlePaymentDelayed(chargeData) {
     
     console.log(`⏳ Processing delayed payment for order: ${orderId}`)
     
-    // TODO: Update order status to 'partially_paid' in database
-    // TODO: Notify customer about payment delay
+    const client = await clientPromise
+    const db = client.db('eurotours')
     
-    console.log(`⏳ Order ${orderId} payment delayed via Coinbase Commerce`)
+    // Keep as pending but log the delay
+    await Order.updateStatus(db, orderId, 'pending', chargeData.id)
+    console.log(`⏳ Order ${orderId} remains pending due to delayed payment`)
+    
+    // TODO: Optionally notify customer about payment delay
     
   } catch (error) {
     console.error('❌ Error handling delayed payment:', error)
@@ -187,9 +236,12 @@ async function handlePaymentPending(chargeData) {
     
     console.log(`⏸️ Processing pending payment for order: ${orderId}`)
     
-    // TODO: Update order status to 'pending' in database
+    const client = await clientPromise
+    const db = client.db('eurotours')
     
-    console.log(`⏸️ Order ${orderId} payment pending via Coinbase Commerce`)
+    // Update order status to pending
+    await Order.updateStatus(db, orderId, 'pending', chargeData.id)
+    console.log(`⏸️ Order ${orderId} status updated to 'pending'`)
     
   } catch (error) {
     console.error('❌ Error handling pending payment:', error)

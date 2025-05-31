@@ -14,12 +14,6 @@ export async function POST(request) {
     const body = await request.json()
     console.log('📥 OnchainKit create charge request:', body)
     
-    // Debug environment variables
-    console.log('🔍 OnchainKit debugging environment variables:')
-    console.log('COINBASE_COMMERCE_API_KEY exists:', !!process.env.COINBASE_COMMERCE_API_KEY)
-    console.log('COINBASE_COMMERCE_API_KEY length:', process.env.COINBASE_COMMERCE_API_KEY?.length || 0)
-    console.log('COINBASE_COMMERCE_API_KEY value:', process.env.COINBASE_COMMERCE_API_KEY ? `${process.env.COINBASE_COMMERCE_API_KEY.substring(0, 8)}...` : 'undefined')
-    
     // Validate request data
     const validatedData = CreateChargeSchema.parse(body)
     
