@@ -8,8 +8,10 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { ArrowUpDown, Search, MapPin } from 'lucide-react'
 import { CitySelect } from './CitySelect'
 import { DatePicker } from './DatePicker'
+import { useLanguage } from '@/lib/contexts/LanguageContext'
 
 export function SearchForm({ onSearch, initialValues = {} }) {
+  const { t } = useLanguage()
   const [tripType, setTripType] = useState(initialValues.tripType || 'one-way')
   const [isLoading, setIsLoading] = useState(false)
 
@@ -58,10 +60,10 @@ export function SearchForm({ onSearch, initialValues = {} }) {
     <Card className="w-full max-w-4xl mx-auto shadow-lg pt-0">
       <CardHeader className="bg-blue-600 text-white rounded-t-lg p-2 mt-0">
         <CardTitle className="text-2xl text-center font-bold">
-          Find Your Perfect Bus Route
+          {t.findPerfectRoute}
         </CardTitle>
         <p className="text-center text-blue-100">
-          We compare prices from multiple carriers to get you the best deals
+          {t.comparePrices}
         </p>
       </CardHeader>
       
@@ -72,11 +74,11 @@ export function SearchForm({ onSearch, initialValues = {} }) {
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
                 <MapPin className="w-4 h-4" />
-                From
+                {t.from}
               </label>
               <CitySelect
                 name="fromCity"
-                placeholder="Select departure city"
+                placeholder={t.selectDepartureCity}
                 value={watchedFromCity}
                 onValueChange={(value) => setValue('fromCity', value)}
                 error={errors.fromCity?.message}
@@ -99,11 +101,11 @@ export function SearchForm({ onSearch, initialValues = {} }) {
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
                 <MapPin className="w-4 h-4" />
-                To
+                {t.to}
               </label>
               <CitySelect
                 name="toCity"
-                placeholder="Select destination city"
+                placeholder={t.selectDestinationCity}
                 value={watchedToCity}
                 onValueChange={(value) => setValue('toCity', value)}
                 error={errors.toCity?.message}
@@ -127,7 +129,7 @@ export function SearchForm({ onSearch, initialValues = {} }) {
                 htmlFor="return-trip"
                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
               >
-                Return ticket
+                {t.returnTicket}
               </label>
             </div>
           </div>
@@ -136,11 +138,11 @@ export function SearchForm({ onSearch, initialValues = {} }) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700">
-                Departure Date
+                {t.departureDate}
               </label>
               <DatePicker
                 name="departureDate"
-                placeholder="Select date"
+                placeholder={t.selectDate}
                 value={watch('departureDate')}
                 onValueChange={(value) => setValue('departureDate', value)}
                 minDate={new Date()}
@@ -151,11 +153,11 @@ export function SearchForm({ onSearch, initialValues = {} }) {
             {tripType === 'return' && (
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">
-                  Return Date
+                  {t.returnDate}
                 </label>
                 <DatePicker
                   name="returnDate"
-                  placeholder="Select date"
+                  placeholder={t.selectDate}
                   value={watch('returnDate')}
                   onValueChange={(value) => setValue('returnDate', value)}
                   minDate={watch('departureDate') ? new Date(watch('departureDate')) : new Date()}
@@ -175,12 +177,12 @@ export function SearchForm({ onSearch, initialValues = {} }) {
             {isLoading ? (
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Loading...
+                {t.loading}
               </div>
             ) : (
               <div className="flex items-center gap-2">
                 <Search className="w-5 h-5" />
-                Find Tickets
+                {t.findTickets}
               </div>
             )}
           </Button>

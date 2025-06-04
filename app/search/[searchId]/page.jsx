@@ -9,11 +9,14 @@ import { SearchForm } from '@/components/SearchForm'
 import { ArrowLeft, RefreshCw, AlertCircle } from 'lucide-react'
 import { getTranslatedName } from '@/lib/utils/i18n'
 import { Logo } from '@/components/ui/logo'
+import { LanguageDropdown } from '@/components/LanguageDropdown'
+import { useLanguage } from '@/lib/contexts/LanguageContext'
 
 export default function SearchResultsPage() {
   const params = useParams()
   const router = useRouter()
   const { searchId } = params
+  const { t } = useLanguage()
 
   const [routes, setRoutes] = useState({ outbound: [], return: [] })
   const [searchData, setSearchData] = useState(null)
@@ -134,17 +137,17 @@ export default function SearchResultsPage() {
   const handleNewSearch = async (newSearchData) => {
     // Validate form data
     if (!newSearchData.fromCity || !newSearchData.toCity) {
-      alert('Please select both departure and destination cities.')
+      alert(t.selectCities)
       return
     }
 
     if (!newSearchData.departureDate) {
-      alert('Please select a departure date.')
+      alert(t.selectDepartureDate)
       return
     }
 
     if (newSearchData.tripType === 'return' && !newSearchData.returnDate) {
-      alert('Please select a return date for round-trip tickets.')
+      alert(t.selectReturnDate)
       return
     }
 
@@ -178,7 +181,7 @@ export default function SearchResultsPage() {
       
     } catch (error) {
       console.error('Search error:', error)
-      alert('Search failed. Please try again.')
+      alert(t.searchFailed)
     }
   }
 
@@ -187,7 +190,7 @@ export default function SearchResultsPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading...</p>
+          <p className="text-gray-600">{t.loading}</p>
         </div>
       </div>
     )
@@ -202,7 +205,7 @@ export default function SearchResultsPage() {
             <h2 className="text-xl font-semibold mb-2">Error</h2>
             <p className="text-gray-600 mb-4">{error}</p>
             <Button onClick={() => router.push('/')} variant="outline">
-              Home
+              {t.home}
             </Button>
           </CardContent>
         </Card>
@@ -225,10 +228,13 @@ export default function SearchResultsPage() {
                 className="mr-4"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Home
+                {t.home}
               </Button>
               <Logo />
             </div>
+            
+            {/* Language Dropdown */}
+            <LanguageDropdown />
           </div>
         </div>
       </header>
@@ -243,11 +249,11 @@ export default function SearchResultsPage() {
         {searchData && (
           <div className="mb-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-2">
-              Search Results
+              {t.searchResults}
             </h2>
             <p className="text-gray-600">
-              Found {totalRoutes} route{totalRoutes !== 1 ? 's' : ''}
-              {searchData.type === 'return' && ' (outbound + return)'}
+              {t.foundRoutes} {totalRoutes} {totalRoutes === 1 ? t.route : t.routes}
+              {searchData.type === 'return' && ` ${t.outboundReturn}`}
             </p>
           </div>
         )}
@@ -260,10 +266,10 @@ export default function SearchResultsPage() {
                 <RefreshCw className="w-5 h-5 text-blue-600 animate-spin" />
                 <div>
                   <p className="font-medium text-blue-900">
-                    Checking external providers...
+                    {t.checkingExternalProviders}
                   </p>
                   <p className="text-sm text-blue-700">
-                    {externalProcessing} {externalProcessing === 1 ? 'provider' : 'providers'} loading...
+                    {externalProcessing} {externalProcessing === 1 ? t.provider : t.providers} {t.providersLoading}
                   </p>
                 </div>
               </div>
@@ -275,7 +281,7 @@ export default function SearchResultsPage() {
         {routes.outbound.length > 0 && (
           <div className="mb-8">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Outbound Journey
+              {t.outboundJourney}
             </h3>
             <div className="space-y-4">
               {routes.outbound.map((route) => (
@@ -296,7 +302,7 @@ export default function SearchResultsPage() {
         {routes.return.length > 0 && (
           <div className="mb-8">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Return Journey
+              {t.returnJourney}
             </h3>
             <div className="space-y-4">
               {routes.return.map((route) => (
@@ -318,15 +324,15 @@ export default function SearchResultsPage() {
           <Card className="max-w-md mx-auto">
             <CardContent className="p-6 text-center">
               <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No routes found</h3>
+              <h3 className="text-lg font-semibold mb-2">{t.noRoutesFound}</h3>
               <p className="text-gray-600 mb-4">
-                We couldn't find any routes for your search criteria. Try adjusting your dates or destinations.
+                {t.noRoutesMessage}
               </p>
               <Button 
                 onClick={() => router.push('/')}
                 variant="outline"
               >
-                New Search
+                {t.newSearch}
               </Button>
             </CardContent>
           </Card>

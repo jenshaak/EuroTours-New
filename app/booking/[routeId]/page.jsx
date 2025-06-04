@@ -9,11 +9,14 @@ import { Label } from '@/components/ui/label'
 import { ArrowLeft, Clock, Bus, MapPin, CreditCard, Coins } from 'lucide-react'
 import { formatTime, formatDuration, formatPrice, getTranslatedName } from '@/lib/utils/i18n'
 import { Logo } from '@/components/ui/logo'
+import { LanguageDropdown } from '@/components/LanguageDropdown'
+import { useLanguage } from '@/lib/contexts/LanguageContext'
 
 export default function BookingPage() {
   const params = useParams()
   const router = useRouter()
   const { routeId } = params
+  const { t } = useLanguage()
 
   const [route, setRoute] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -105,7 +108,7 @@ export default function BookingPage() {
     try {
       // Validate form
       if (!passengerInfo.fullName || !passengerInfo.email || !passengerInfo.phone) {
-        alert('Please fill in all required fields')
+        alert(t.fillRequired)
         return
       }
 
@@ -256,7 +259,7 @@ export default function BookingPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading booking details...</p>
+          <p className="text-gray-600">{t.loadingBooking}</p>
         </div>
       </div>
     )
@@ -267,9 +270,9 @@ export default function BookingPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <Card className="max-w-md mx-auto">
           <CardContent className="p-6 text-center">
-            <p className="text-gray-600 mb-4">{error || 'Route not found'}</p>
+            <p className="text-gray-600 mb-4">{error || t.routeNotFound}</p>
             <Button onClick={() => router.push('/')} variant="outline">
-              Back to Search
+              {t.backToSearch}
             </Button>
           </CardContent>
         </Card>
@@ -296,10 +299,13 @@ export default function BookingPage() {
                 className="mr-4"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Back
+                {t.back}
               </Button>
               <Logo />
             </div>
+            
+            {/* Language Dropdown */}
+            <LanguageDropdown />
           </div>
         </div>
       </header>
@@ -310,7 +316,7 @@ export default function BookingPage() {
           <div className="lg:col-span-1">
             <Card className="sticky top-8">
               <CardHeader>
-                <CardTitle className="text-lg">Trip Summary</CardTitle>
+                <CardTitle className="text-lg">{t.tripSummary}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Route Details */}
@@ -350,7 +356,7 @@ export default function BookingPage() {
                     <span>{route.carrier?.name}</span>
                     {route.isDirect && (
                       <span className="ml-2 px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
-                        Direct
+                        {t.direct}
                       </span>
                     )}
                   </div>
@@ -358,7 +364,7 @@ export default function BookingPage() {
 
                 <div className="border-t pt-4">
                   <div className="flex justify-between items-center">
-                    <span className="font-medium">Total Price</span>
+                    <span className="font-medium">{t.totalPrice}</span>
                     <span className="text-2xl font-bold text-green-600">
                       {formatPrice(route.price, route.currency)}
                     </span>
@@ -372,48 +378,48 @@ export default function BookingPage() {
           <div className="lg:col-span-2">
             <Card>
               <CardHeader>
-                <CardTitle className="text-xl">Passenger Information</CardTitle>
+                <CardTitle className="text-xl">{t.passengerInfo}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 {/* Passenger Details */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="fullName">Full Name *</Label>
+                    <Label htmlFor="fullName">{t.fullName} *</Label>
                     <Input
                       id="fullName"
                       value={passengerInfo.fullName}
                       onChange={(e) => handleInputChange('fullName', e.target.value)}
-                      placeholder="Enter your full name"
+                      placeholder={t.enterFullName}
                       required
                     />
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email Address *</Label>
+                    <Label htmlFor="email">{t.emailAddress} *</Label>
                     <Input
                       id="email"
                       type="email"
                       value={passengerInfo.email}
                       onChange={(e) => handleInputChange('email', e.target.value)}
-                      placeholder="Enter your email"
+                      placeholder={t.enterEmail}
                       required
                     />
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="phone">Phone Number *</Label>
+                    <Label htmlFor="phone">{t.phoneNumber} *</Label>
                     <Input
                       id="phone"
                       type="tel"
                       value={passengerInfo.phone}
                       onChange={(e) => handleInputChange('phone', e.target.value)}
-                      placeholder="Enter your phone number"
+                      placeholder={t.enterPhone}
                       required
                     />
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="dateOfBirth">Date of Birth</Label>
+                    <Label htmlFor="dateOfBirth">{t.dateOfBirth}</Label>
                     <Input
                       id="dateOfBirth"
                       type="date"
@@ -423,19 +429,19 @@ export default function BookingPage() {
                   </div>
                   
                   <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="documentNumber">ID/Passport Number</Label>
+                    <Label htmlFor="documentNumber">{t.idPassport}</Label>
                     <Input
                       id="documentNumber"
                       value={passengerInfo.documentNumber}
                       onChange={(e) => handleInputChange('documentNumber', e.target.value)}
-                      placeholder="Enter your ID or passport number"
+                      placeholder={t.enterIdPassport}
                     />
                   </div>
                 </div>
 
                 {/* Payment Options */}
                 <div className="border-t pt-6">
-                  <h3 className="text-lg font-semibold mb-4">Payment Method</h3>
+                  <h3 className="text-lg font-semibold mb-4">{t.paymentMethod}</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Button
                       onClick={() => handleBookingSubmit('card')}
@@ -443,21 +449,9 @@ export default function BookingPage() {
                       className="h-16 flex flex-col items-center gap-2"
                     >
                       <CreditCard className="w-6 h-6" />
-                      <span>Pay with Card</span>
+                      <span>{t.payWithCard}</span>
                     </Button>
                     
-                    {/* 
-                    <Button
-                      onClick={() => handleBookingSubmit('coinremitter')}
-                      disabled={isSubmitting}
-                      variant="outline"
-                      className="h-16 flex flex-col items-center gap-2"
-                    >
-                      <Coins className="w-6 h-6" />
-                      <span>Pay with CoinRemitter</span>
-                    </Button>
-                    */}
-
                     <Button
                       onClick={() => handleBookingSubmit('coinbase')}
                       disabled={isSubmitting}
@@ -465,22 +459,8 @@ export default function BookingPage() {
                       className="h-16 flex flex-col items-center gap-2"
                     >
                       <Coins className="w-6 h-6" />
-                      <span>Pay with Cryptocurrency</span>
+                      <span>{t.payWithCrypto}</span>
                     </Button>
-
-                    {/*
-                    <Button
-                      onClick={() => handleBookingSubmit('onchainkit')}
-                      disabled={isSubmitting}
-                      variant="outline"
-                      className="h-16 flex flex-col items-center gap-2 bg-blue-50 hover:bg-blue-100 border-blue-200"
-                    >
-                      <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
-                        $
-                      </div>
-                      <span>Pay with USDC (OnchainKit)</span>
-                    </Button>
-                    */}
                   </div>
                 </div>
               </CardContent>
@@ -495,12 +475,12 @@ export default function BookingPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Coins className="w-5 h-5" />
-                  Select Cryptocurrency - {selectedPaymentMethod === 'coinremitter' ? 'CoinRemitter' : 'Coinbase Commerce'}
+                  {t.selectCrypto} - {selectedPaymentMethod === 'coinremitter' ? 'CoinRemitter' : 'Coinbase Commerce'}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-sm text-gray-600">
-                  Choose your preferred cryptocurrency for payment:
+                  {t.chooseCrypto}
                 </p>
                 
                 <div className="grid grid-cols-2 gap-3">
@@ -524,14 +504,14 @@ export default function BookingPage() {
                     className="flex-1"
                     disabled={isSubmitting}
                   >
-                    Cancel
+                    {t.cancel}
                   </Button>
                   <Button
                     onClick={handleCryptoConfirm}
                     className="flex-1"
                     disabled={isSubmitting}
                   >
-                    {isSubmitting ? 'Creating...' : 'Continue'}
+                    {isSubmitting ? t.creating : t.continue}
                   </Button>
                 </div>
               </CardContent>
